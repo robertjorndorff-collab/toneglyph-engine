@@ -1,6 +1,11 @@
 FROM python:3.11-slim
 
-RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg \
+# System deps:
+#   ffmpeg     — pydub MP3/M4A/AAC/FLAC decoding
+#   libsndfile1 — soundfile (librosa loader for WAV/FLAC/OGG)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+        ffmpeg \
+        libsndfile1 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

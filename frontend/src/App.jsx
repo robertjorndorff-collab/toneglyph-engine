@@ -4,6 +4,80 @@ import './App.css'
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 const MAX_SIZE = 50 * 1024 * 1024
 const ACCEPTED = '.mp3,.wav,.flac,.m4a,.aac'
+const PITCH_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
+
+function fmt(n, digits = 2) {
+  if (n === null || n === undefined || Number.isNaN(n)) return '—'
+  return Number(n).toFixed(digits)
+}
+
+function Pillar3({ data, error, elapsed }) {
+  if (error) {
+    return (
+      <div className="pillar3-section">
+        <h3>Pillar 3 — Music Theory</h3>
+        <p className="pillar-error">Analysis failed: {error}</p>
+      </div>
+    )
+  }
+  if (!data) return null
+
+  const chromaMax = Math.max(...data.chroma.mean, 1e-9)
+
+  return (
+    <div className="pillar3-section">
+      <h3>Pillar 3 — Music Theory <span className="elapsed">{fmt(elapsed, 2)}s</span></h3>
+      <table className="result-table">
+        <tbody>
+          <tr><td>Key</td><td>{data.key.name} <span className="muted">(conf {fmt(data.key.confidence, 3)})</span></td></tr>
+          <tr><td>Tempo</td><td>{fmt(data.tempo.bpm, 1)} BPM <span className="muted">(stability {fmt(data.tempo.stability, 3)})</span></td></tr>
+          <tr><td>Beats</td><td>{data.beats.count}</td></tr>
+          <tr><td>Onsets</td><td>{data.onsets.count} <span className="muted">({fmt(data.onsets.density, 2)}/s)</span></td></tr>
+          <tr>
+            <td>Harmonic</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.harmonic_complexity * 100}%` }} /></div>
+              <span className="muted">{fmt(data.harmonic_complexity, 3)}</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Rhythmic</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.rhythmic_complexity * 100}%` }} /></div>
+              <span className="muted">{fmt(data.rhythmic_complexity, 3)}</span>
+            </td>
+          </tr>
+          <tr>
+            <td>Spectral</td>
+            <td className="muted">
+              centroid {fmt(data.spectral.centroid_mean, 0)}Hz · bandwidth {fmt(data.spectral.bandwidth_mean, 0)}Hz · rolloff {fmt(data.spectral.rolloff_mean, 0)}Hz
+            </td>
+          </tr>
+          <tr>
+            <td>ZCR / RMS</td>
+            <td className="muted">
+              zcr {fmt(data.zero_crossing_rate.mean, 4)} · rms {fmt(data.rms.mean, 4)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div className="chroma-block">
+        <p className="chroma-label">Chromagram (mean energy per pitch class)</p>
+        <div className="chroma-bars">
+          {data.chroma.mean.map((v, i) => (
+            <div key={i} className="chroma-col">
+              <div className="chroma-bar-wrap">
+                <div className="chroma-bar" style={{ height: `${(v / chromaMax) * 100}%` }} />
+              </div>
+              <span className="chroma-tick">{PITCH_NAMES[i]}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function App() {
   const [health, setHealth] = useState(null)
@@ -106,6 +180,12 @@ function App() {
               <tr><td>SHA-256</td><td className="hash">{result.file_hash}</td></tr>
             </tbody>
           </table>
+
+          <Pillar3
+            data={result.pillar3}
+            error={result.pillar3_error}
+            elapsed={result.pillar3_elapsed_sec}
+          />
         </div>
       )}
     </div>

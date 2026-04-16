@@ -1,11 +1,17 @@
 import hashlib
+import logging
 import os
 import tempfile
+import time
 from typing import Optional
 
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydub import AudioSegment
+
+from app import pillar3
+
+logger = logging.getLogger("toneglyph")
 
 app = FastAPI(title="ToneGlyph Engine", version="0.1.0")
 
@@ -86,6 +92,18 @@ async def analyze(file: UploadFile = File(...)):
 
         duration_sec = round(audio.duration_seconds, 3)
 
+        # Pillar 3: Music theory analysis (operates directly on the temp file —
+        # librosa handles its own resampling deterministically at SR=22050)
+        pillar3_start = time.perf_counter()
+        try:
+            pillar3_data = pillar3.analyze(tmp_path)
+            pillar3_error = None
+        except Exception as exc:
+            logger.exception("pillar3 analysis failed")
+            pillar3_data = None
+            pillar3_error = str(exc)
+        pillar3_elapsed = round(time.perf_counter() - pillar3_start, 3)
+
         return {
             "status": "ok",
             "file_hash": file_hash,
@@ -94,6 +112,9 @@ async def analyze(file: UploadFile = File(...)):
             "channels": original_channels,
             "format": fmt,
             "filename": file.filename,
+            "pillar3": pillar3_data,
+            "pillar3_error": pillar3_error,
+            "pillar3_elapsed_sec": pillar3_elapsed,
         }
     finally:
         if tmp_path and os.path.exists(tmp_path):
