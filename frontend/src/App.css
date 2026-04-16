@@ -1,15 +1,15 @@
+/* ── Layout ──────────────────────────────────────────────────────── */
+
 .app {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 32px;
+  gap: 24px;
   text-align: center;
+  padding-bottom: 64px;
 }
 
-.app h1 {
-  font-size: 2.5rem;
-  letter-spacing: -0.5px;
-}
+.app h1 { font-size: 2.5rem; letter-spacing: -0.5px; }
 
 .subtitle {
   color: var(--accent);
@@ -27,18 +27,10 @@
   font-size: 0.875rem;
   color: var(--text);
 }
+.status.ok  { border-color: #22c55e; color: #22c55e; }
+.status.error { border-color: #ef4444; color: #ef4444; }
 
-.status.ok {
-  border-color: #22c55e;
-  color: #22c55e;
-}
-
-.status.error {
-  border-color: #ef4444;
-  color: #ef4444;
-}
-
-/* Upload dropzone */
+/* ── Dropzone ────────────────────────────────────────────────────── */
 
 .dropzone {
   width: 100%;
@@ -49,31 +41,92 @@
   cursor: pointer;
   transition: border-color 0.2s, background 0.2s;
 }
-
-.dropzone:hover,
-.dropzone.active {
+.dropzone:hover, .dropzone.active {
   border-color: var(--accent);
   background: rgba(192, 132, 252, 0.05);
 }
+.dropzone.uploading { pointer-events: none; opacity: 0.6; }
+.dropzone.compact { padding: 14px 24px; }
 
-.dropzone.uploading {
-  pointer-events: none;
-  opacity: 0.6;
+.drop-label { color: var(--text-h); font-size: 1.125rem; font-weight: 500; margin-bottom: 8px; }
+.drop-label.drop-compact { margin-bottom: 0; font-size: 0.875rem; }
+.drop-hint  { color: var(--text); font-size: 0.8125rem; }
+
+/* ── Glyph canvas ────────────────────────────────────────────────── */
+
+.glyph-wrap {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
 }
 
-.drop-label {
-  color: var(--text-h);
-  font-size: 1.125rem;
-  font-weight: 500;
-  margin-bottom: 8px;
+.glyph-canvas {
+  width: 100%;
+  border-radius: 16px;
+  overflow: hidden;
 }
+.glyph-canvas canvas { display: block; width: 100% !important; height: auto !important; }
 
-.drop-hint {
+.export-btn {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  padding: 8px 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
   color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.2s, color 0.2s;
+}
+.export-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ── Signature card ──────────────────────────────────────────────── */
+
+.signature-card {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  text-align: left;
+}
+
+.sig-color-block {
+  width: 56px;
+  min-height: 56px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.sig-data { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+
+.sig-row {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
   font-size: 0.8125rem;
 }
 
-/* Result card */
+.sig-label {
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  width: 60px;
+  flex-shrink: 0;
+}
+
+.sig-value { color: var(--text-h); }
+
+/* ── Result card ─────────────────────────────────────────────────── */
 
 .result-card {
   width: 100%;
@@ -101,20 +154,16 @@
   font-size: 0.875rem;
 }
 
-.result-table {
-  width: 100%;
-  border-collapse: collapse;
-}
+/* ── Tables ──────────────────────────────────────────────────────── */
+
+.result-table { width: 100%; border-collapse: collapse; }
 
 .result-table td {
   padding: 8px 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.875rem;
 }
-
-.result-table tr:last-child td {
-  border-bottom: none;
-}
+.result-table tr:last-child td { border-bottom: none; }
 
 .result-table td:first-child {
   color: var(--text);
@@ -124,10 +173,7 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
-.result-table td:last-child {
-  color: var(--text-h);
-}
+.result-table td:last-child { color: var(--text-h); }
 
 .hash {
   font-family: var(--mono);
@@ -136,15 +182,15 @@
   color: var(--accent-secondary);
 }
 
-/* Pillar 3 section */
+/* ── Pillar sections ─────────────────────────────────────────────── */
 
-.pillar3-section {
+.pillar-section {
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid var(--border);
 }
 
-.pillar3-section h3 {
+.pillar-section h3 {
   font-size: 1rem;
   margin-bottom: 16px;
   color: var(--accent);
@@ -157,23 +203,8 @@
   align-items: baseline;
 }
 
-.elapsed {
-  font-size: 0.75rem;
-  color: var(--text);
-  letter-spacing: 0;
-  text-transform: none;
-}
-
-.muted {
-  color: var(--text);
-  font-size: 0.8125rem;
-}
-
-.pillar-error {
-  color: #ef4444;
-  font-family: var(--mono);
-  font-size: 0.875rem;
-}
+.muted { color: var(--text); font-size: 0.8125rem; }
+.pillar-error { color: #ef4444; font-family: var(--mono); font-size: 0.875rem; }
 
 .meter {
   display: inline-block;
@@ -185,17 +216,16 @@
   margin-right: 8px;
   overflow: hidden;
 }
-
 .meter-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--accent-secondary), var(--accent));
   border-radius: 3px;
 }
+.meter.small { width: 90px; height: 5px; }
 
-.chroma-block {
-  margin-top: 20px;
-}
+/* ── Chromagram bars ─────────────────────────────────────────────── */
 
+.chroma-block { margin-top: 20px; }
 .chroma-label {
   font-size: 0.75rem;
   font-family: var(--mono);
@@ -204,44 +234,17 @@
   letter-spacing: 0.5px;
   margin-bottom: 8px;
 }
-
-.chroma-bars {
-  display: flex;
-  align-items: flex-end;
-  gap: 4px;
-  height: 96px;
-}
-
-.chroma-col {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-  height: 100%;
-}
-
-.chroma-bar-wrap {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-}
-
+.chroma-bars { display: flex; align-items: flex-end; gap: 4px; height: 72px; }
+.chroma-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; }
+.chroma-bar-wrap { flex: 1; width: 100%; display: flex; align-items: flex-end; }
 .chroma-bar {
-  width: 100%;
-  min-height: 2px;
+  width: 100%; min-height: 2px;
   background: linear-gradient(180deg, var(--accent), var(--accent-secondary));
   border-radius: 2px 2px 0 0;
 }
+.chroma-tick { font-family: var(--mono); font-size: 0.625rem; color: var(--text); }
 
-.chroma-tick {
-  font-family: var(--mono);
-  font-size: 0.625rem;
-  color: var(--text);
-}
-
-/* LLM pillar sections */
+/* ── LLM pillar sections ─────────────────────────────────────────── */
 
 .reasoning {
   margin-top: 12px;
@@ -254,70 +257,25 @@
   color: var(--text);
 }
 
-.meter.small {
-  width: 90px;
-  height: 5px;
-}
+.influence-block { margin-top: 16px; }
+.influence-row { display: flex; align-items: center; gap: 10px; padding: 5px 0; font-size: 0.8125rem; }
+.influence-name { flex: 1; color: var(--text-h); }
 
-.influence-block {
-  margin-top: 16px;
-}
-
-.influence-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 5px 0;
-  font-size: 0.8125rem;
-}
-
-.influence-name {
-  flex: 1;
-  color: var(--text-h);
-}
-
-.johari-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-top: 16px;
-}
-
-.johari-cell {
-  padding: 10px 12px;
-  border: 1px solid var(--border);
-  border-radius: 6px;
-}
-
+.johari-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 16px; }
+.johari-cell { padding: 10px 12px; border: 1px solid var(--border); border-radius: 6px; }
 .johari-label {
-  display: block;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  color: var(--accent);
-  margin-bottom: 6px;
+  display: block; font-family: var(--mono); font-size: 0.6875rem;
+  text-transform: uppercase; letter-spacing: 1px; color: var(--accent); margin-bottom: 6px;
 }
+.johari-cell ul { list-style: none; padding: 0; margin: 0; }
+.johari-cell li { font-size: 0.75rem; color: var(--text-h); padding: 2px 0; line-height: 1.4; }
 
-.johari-cell ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-}
+/* ── Responsive ──────────────────────────────────────────────────── */
 
-.johari-cell li {
-  font-size: 0.75rem;
-  color: var(--text-h);
-  padding: 2px 0;
-  line-height: 1.4;
-}
-
-.cache-note {
-  margin-top: 12px;
-  font-family: var(--mono);
-  font-size: 0.6875rem;
-  color: var(--text);
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  text-align: center;
+@media (max-width: 640px) {
+  .app h1 { font-size: 1.75rem; }
+  .signature-card { flex-direction: column; }
+  .sig-color-block { width: 100%; min-height: 32px; }
+  .johari-grid { grid-template-columns: 1fr; }
+  .chroma-bars { height: 56px; }
 }
