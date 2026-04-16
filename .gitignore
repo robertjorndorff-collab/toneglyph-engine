@@ -27,3 +27,12 @@ Thumbs.db
 
 # Claude Code
 .claude/
+
+# Testing — catalog contains local paths and may reference personal music files
+testing/catalog.json
+testing/catalog_*.json
+testing/mp3s/
+testing/validation_results.json
+
+# LLM response cache (per-file analysis outputs)
+backend/.cache/

@@ -240,3 +240,84 @@
   font-size: 0.625rem;
   color: var(--text);
 }
+
+/* LLM pillar sections */
+
+.reasoning {
+  margin-top: 12px;
+  padding: 12px 14px;
+  background: rgba(192, 132, 252, 0.06);
+  border-left: 2px solid var(--accent);
+  border-radius: 4px;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.meter.small {
+  width: 90px;
+  height: 5px;
+}
+
+.influence-block {
+  margin-top: 16px;
+}
+
+.influence-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  font-size: 0.8125rem;
+}
+
+.influence-name {
+  flex: 1;
+  color: var(--text-h);
+}
+
+.johari-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.johari-cell {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.johari-label {
+  display: block;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--accent);
+  margin-bottom: 6px;
+}
+
+.johari-cell ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.johari-cell li {
+  font-size: 0.75rem;
+  color: var(--text-h);
+  padding: 2px 0;
+  line-height: 1.4;
+}
+
+.cache-note {
+  margin-top: 12px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-align: center;
+}

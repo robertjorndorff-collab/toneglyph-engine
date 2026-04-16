@@ -11,6 +11,112 @@ function fmt(n, digits = 2) {
   return Number(n).toFixed(digits)
 }
 
+function Pillar1({ data, error }) {
+  if (error) {
+    return (
+      <div className="pillar3-section">
+        <h3>Pillar 1 — Zeitgeist</h3>
+        <p className="pillar-error">{error}</p>
+      </div>
+    )
+  }
+  if (!data) return null
+  return (
+    <div className="pillar3-section">
+      <h3>Pillar 1 — Zeitgeist</h3>
+      <table className="result-table">
+        <tbody>
+          <tr>
+            <td>Score</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.zeitgeist_score * 100}%` }} /></div>
+              <span className="muted">{fmt(data.zeitgeist_score, 3)}</span>
+            </td>
+          </tr>
+          <tr><td>Era</td><td>{data.era_alignment}</td></tr>
+          <tr><td>Genre</td><td>{data.genre_position}</td></tr>
+        </tbody>
+      </table>
+      <p className="reasoning">{data.cultural_reasoning}</p>
+    </div>
+  )
+}
+
+function Pillar2({ data, error }) {
+  if (error) {
+    return (
+      <div className="pillar3-section">
+        <h3>Pillar 2 — Artistic DNA</h3>
+        <p className="pillar-error">{error}</p>
+      </div>
+    )
+  }
+  if (!data) return null
+  return (
+    <div className="pillar3-section">
+      <h3>Pillar 2 — Artistic DNA</h3>
+      <table className="result-table">
+        <tbody>
+          <tr>
+            <td>DNA Score</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.dna_score * 100}%` }} /></div>
+              <span className="muted">{fmt(data.dna_score, 3)}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="influence-block">
+        <p className="chroma-label">Influence Vector</p>
+        {data.influence_vector.map((inf, i) => (
+          <div key={i} className="influence-row">
+            <span className="influence-name">{inf.name}</span>
+            <div className="meter small"><div className="meter-fill" style={{ width: `${inf.weight * 100}%` }} /></div>
+            <span className="muted">{fmt(inf.weight, 2)}</span>
+          </div>
+        ))}
+      </div>
+      <p className="reasoning">{data.dna_reasoning}</p>
+    </div>
+  )
+}
+
+function Pillar4({ data, error }) {
+  if (error) {
+    return (
+      <div className="pillar3-section">
+        <h3>Pillar 4 — Johari Window</h3>
+        <p className="pillar-error">{error}</p>
+      </div>
+    )
+  }
+  if (!data) return null
+  const q = data.johari_quadrant_assignments
+  return (
+    <div className="pillar3-section">
+      <h3>Pillar 4 — Johari Window</h3>
+      <table className="result-table">
+        <tbody>
+          <tr>
+            <td>Hidden Complexity</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.hidden_complexity_score * 100}%` }} /></div>
+              <span className="muted">{fmt(data.hidden_complexity_score, 3)}</span>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div className="johari-grid">
+        <div className="johari-cell"><span className="johari-label">Open</span><ul>{q.open.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+        <div className="johari-cell"><span className="johari-label">Blind</span><ul>{q.blind.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+        <div className="johari-cell"><span className="johari-label">Hidden</span><ul>{q.hidden.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+        <div className="johari-cell"><span className="johari-label">Unknown</span><ul>{q.unknown.map((x, i) => <li key={i}>{x}</li>)}</ul></div>
+      </div>
+      <p className="reasoning">{data.johari_reasoning}</p>
+    </div>
+  )
+}
+
 function Pillar5({ data, error, elapsed }) {
   if (error) {
     return (
@@ -231,11 +337,19 @@ function App() {
             elapsed={result.pillar3_elapsed_sec}
           />
 
+          <Pillar1 data={result.pillar1} error={result.pillar1_error} />
+          <Pillar2 data={result.pillar2} error={result.pillar2_error} />
+          <Pillar4 data={result.pillar4} error={result.pillar4_error} />
+
           <Pillar5
             data={result.pillar5}
             error={result.pillar5_error}
             elapsed={result.pillar5_elapsed_sec}
           />
+
+          {result.llm_cache_hit && (
+            <p className="cache-note">LLM pillars served from cache</p>
+          )}
         </div>
       )}
     </div>

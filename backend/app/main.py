@@ -5,11 +5,15 @@ import tempfile
 import time
 from typing import Optional
 
+from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydub import AudioSegment
 
-from app import pillar3, pillar5
+# Load backend/.env (e.g. ANTHROPIC_API_KEY) before submodule imports read os.environ
+load_dotenv()
+
+from app import pillar3, pillar5, pillars_llm  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("toneglyph")
@@ -116,6 +120,15 @@ async def analyze(file: UploadFile = File(...)):
             pillar5_error = str(exc)
         pillar5_elapsed = round(time.perf_counter() - pillar5_start, 3)
 
+        # Pillars 1, 2, 4: LLM-assisted analysis (cached by file_hash)
+        llm_start = time.perf_counter()
+        llm_out = pillars_llm.analyze_all(
+            pillar3_data=pillar3_data,
+            filename=file.filename or "",
+            file_hash=file_hash,
+        )
+        llm_elapsed = round(time.perf_counter() - llm_start, 3)
+
         return {
             "status": "ok",
             "file_hash": file_hash,
@@ -130,6 +143,14 @@ async def analyze(file: UploadFile = File(...)):
             "pillar5": pillar5_data,
             "pillar5_error": pillar5_error,
             "pillar5_elapsed_sec": pillar5_elapsed,
+            "pillar1": llm_out["pillar1"],
+            "pillar1_error": llm_out["pillar1_error"],
+            "pillar2": llm_out["pillar2"],
+            "pillar2_error": llm_out["pillar2_error"],
+            "pillar4": llm_out["pillar4"],
+            "pillar4_error": llm_out["pillar4_error"],
+            "llm_cache_hit": llm_out["cache_hit"],
+            "llm_elapsed_sec": llm_elapsed,
         }
     finally:
         if tmp_path and os.path.exists(tmp_path):
