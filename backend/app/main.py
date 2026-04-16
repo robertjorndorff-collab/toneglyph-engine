@@ -11,6 +11,7 @@ from pydub import AudioSegment
 
 from app import pillar3, pillar5
 
+logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("toneglyph")
 
 app = FastAPI(title="ToneGlyph Engine", version="0.1.0")
