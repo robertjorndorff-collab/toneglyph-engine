@@ -16,7 +16,7 @@ from pydub import AudioSegment
 # Explicit path so it works regardless of uvicorn's CWD.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from app import pillar3, pillar5, pillars_llm  # noqa: E402
+from app import color_encoding, pillar3, pillar5, pillars_llm  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("toneglyph")
@@ -132,6 +132,24 @@ async def analyze(file: UploadFile = File(...)):
         )
         llm_elapsed = round(time.perf_counter() - llm_start, 3)
 
+        # Color encoding (CAS): requires all 5 pillars
+        cas_start = time.perf_counter()
+        cas_data = None
+        cas_error = None
+        try:
+            cas_data = color_encoding.encode(
+                pillar1=llm_out["pillar1"],
+                pillar2=llm_out["pillar2"],
+                pillar3=pillar3_data,
+                pillar4=llm_out["pillar4"],
+                pillar5=pillar5_data,
+                file_hash=file_hash,
+            )
+        except Exception as exc:
+            logger.exception("CAS color encoding failed")
+            cas_error = str(exc)
+        cas_elapsed = round(time.perf_counter() - cas_start, 3)
+
         return {
             "status": "ok",
             "file_hash": file_hash,
@@ -154,6 +172,9 @@ async def analyze(file: UploadFile = File(...)):
             "pillar4_error": llm_out["pillar4_error"],
             "llm_cache_hit": llm_out["cache_hit"],
             "llm_elapsed_sec": llm_elapsed,
+            "cas": cas_data,
+            "cas_error": cas_error,
+            "cas_elapsed_sec": cas_elapsed,
         }
     finally:
         if tmp_path and os.path.exists(tmp_path):
