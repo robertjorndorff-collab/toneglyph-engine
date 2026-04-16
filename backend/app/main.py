@@ -5,13 +5,16 @@ import tempfile
 import time
 from typing import Optional
 
+from pathlib import Path
+
 from dotenv import load_dotenv
 from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydub import AudioSegment
 
-# Load backend/.env (e.g. ANTHROPIC_API_KEY) before submodule imports read os.environ
-load_dotenv()
+# Load backend/.env (e.g. ANTHROPIC_API_KEY) before submodule imports read os.environ.
+# Explicit path so it works regardless of uvicorn's CWD.
+load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
 from app import pillar3, pillar5, pillars_llm  # noqa: E402
 
