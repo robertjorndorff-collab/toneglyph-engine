@@ -11,6 +11,50 @@ function fmt(n, digits = 2) {
   return Number(n).toFixed(digits)
 }
 
+function Pillar5({ data, error, elapsed }) {
+  if (error) {
+    return (
+      <div className="pillar3-section">
+        <h3>Pillar 5 — IP Novelty</h3>
+        <p className="pillar-error">Analysis failed: {error}</p>
+      </div>
+    )
+  }
+  if (!data) return null
+
+  return (
+    <div className="pillar3-section">
+      <h3>Pillar 5 — IP Novelty <span className="elapsed">{fmt(elapsed, 2)}s</span></h3>
+      <table className="result-table">
+        <tbody>
+          <tr>
+            <td>Novelty</td>
+            <td>
+              <div className="meter"><div className="meter-fill" style={{ width: `${data.novelty_score * 100}%` }} /></div>
+              <span className="muted">{fmt(data.novelty_score, 3)}</span>
+            </td>
+          </tr>
+          <tr><td>Fingerprint</td><td className="hash">{data.fingerprint_hash}</td></tr>
+          <tr><td>Peaks</td><td>{data.peaks.count} <span className="muted">({fmt(data.peaks.density_per_sec, 1)}/s)</span></td></tr>
+          <tr>
+            <td>Flatness</td>
+            <td className="muted">mean {fmt(data.spectral_flatness.mean, 4)} · std {fmt(data.spectral_flatness.std, 4)}</td>
+          </tr>
+          <tr>
+            <td>Components</td>
+            <td className="muted">
+              flat {fmt(data.components.norm_flatness, 2)} ·
+              contrast {fmt(data.components.norm_contrast, 2)} ·
+              chroma {fmt(data.components.norm_chroma, 2)} ·
+              density {fmt(data.components.norm_density, 2)}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 function Pillar3({ data, error, elapsed }) {
   if (error) {
     return (
@@ -185,6 +229,12 @@ function App() {
             data={result.pillar3}
             error={result.pillar3_error}
             elapsed={result.pillar3_elapsed_sec}
+          />
+
+          <Pillar5
+            data={result.pillar5}
+            error={result.pillar5_error}
+            elapsed={result.pillar5_elapsed_sec}
           />
         </div>
       )}

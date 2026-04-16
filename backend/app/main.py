@@ -9,7 +9,7 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
 from pydub import AudioSegment
 
-from app import pillar3
+from app import pillar3, pillar5
 
 logger = logging.getLogger("toneglyph")
 
@@ -104,6 +104,17 @@ async def analyze(file: UploadFile = File(...)):
             pillar3_error = str(exc)
         pillar3_elapsed = round(time.perf_counter() - pillar3_start, 3)
 
+        # Pillar 5: IP novelty / spectral fingerprint
+        pillar5_start = time.perf_counter()
+        try:
+            pillar5_data = pillar5.analyze(tmp_path)
+            pillar5_error = None
+        except Exception as exc:
+            logger.exception("pillar5 analysis failed")
+            pillar5_data = None
+            pillar5_error = str(exc)
+        pillar5_elapsed = round(time.perf_counter() - pillar5_start, 3)
+
         return {
             "status": "ok",
             "file_hash": file_hash,
@@ -115,6 +126,9 @@ async def analyze(file: UploadFile = File(...)):
             "pillar3": pillar3_data,
             "pillar3_error": pillar3_error,
             "pillar3_elapsed_sec": pillar3_elapsed,
+            "pillar5": pillar5_data,
+            "pillar5_error": pillar5_error,
+            "pillar5_elapsed_sec": pillar5_elapsed,
         }
     finally:
         if tmp_path and os.path.exists(tmp_path):
