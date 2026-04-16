@@ -1,5 +1,11 @@
-from fastapi import FastAPI
+import hashlib
+import os
+import tempfile
+from typing import Optional
+
+from fastapi import FastAPI, File, HTTPException, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
+from pydub import AudioSegment
 
 app = FastAPI(title="ToneGlyph Engine", version="0.1.0")
 
@@ -11,7 +17,84 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB
+
+ALLOWED_FORMATS = {
+    "audio/mpeg": "mp3",
+    "audio/wav": "wav",
+    "audio/x-wav": "wav",
+    "audio/flac": "flac",
+    "audio/x-flac": "flac",
+    "audio/mp4": "m4a",
+    "audio/x-m4a": "m4a",
+    "audio/m4a": "m4a",
+    "audio/aac": "aac",
+}
+
+EXTENSION_MAP = {
+    ".mp3": "mp3",
+    ".wav": "wav",
+    ".flac": "flac",
+    ".m4a": "m4a",
+    ".aac": "aac",
+}
+
+
+def detect_format(content_type: Optional[str], filename: Optional[str]) -> str:
+    if content_type and content_type in ALLOWED_FORMATS:
+        return ALLOWED_FORMATS[content_type]
+    if filename:
+        ext = os.path.splitext(filename)[1].lower()
+        if ext in EXTENSION_MAP:
+            return EXTENSION_MAP[ext]
+    raise HTTPException(
+        status_code=415,
+        detail=f"Unsupported format. Accepted: MP3, WAV, FLAC, M4A, AAC",
+    )
+
 
 @app.get("/health")
 def health():
     return {"status": "ok", "service": "toneglyph-engine"}
+
+
+@app.post("/api/analyze")
+async def analyze(file: UploadFile = File(...)):
+    fmt = detect_format(file.content_type, file.filename)
+
+    tmp_path = None
+    try:
+        data = await file.read()
+        if len(data) > MAX_FILE_SIZE:
+            raise HTTPException(status_code=413, detail="File exceeds 50MB limit")
+
+        file_hash = hashlib.sha256(data).hexdigest()
+
+        suffix = f".{fmt}"
+        fd, tmp_path = tempfile.mkstemp(suffix=suffix)
+        os.close(fd)
+        with open(tmp_path, "wb") as f:
+            f.write(data)
+
+        try:
+            audio = AudioSegment.from_file(tmp_path, format=fmt)
+        except Exception:
+            raise HTTPException(status_code=422, detail="Could not decode audio file")
+
+        original_channels = audio.channels
+        audio = audio.set_channels(1).set_frame_rate(44100)
+
+        duration_sec = round(audio.duration_seconds, 3)
+
+        return {
+            "status": "ok",
+            "file_hash": file_hash,
+            "duration": duration_sec,
+            "sample_rate": 44100,
+            "channels": original_channels,
+            "format": fmt,
+            "filename": file.filename,
+        }
+    finally:
+        if tmp_path and os.path.exists(tmp_path):
+            os.unlink(tmp_path)
