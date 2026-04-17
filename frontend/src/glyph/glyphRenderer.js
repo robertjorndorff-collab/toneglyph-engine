@@ -783,7 +783,7 @@ export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, op
 
       if (type < 0.30) {
         // Splatter dot
-        const r = 0.5 + energy * 12 * rand()
+        const r = 2 + energy * 14 * rand()
         ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
         ctx.fillStyle = hsl(baseH, sat, light + beatB * 6, (0.5 + energy * 0.4) * pass.alphaMul)
         ctx.fill()
@@ -794,7 +794,7 @@ export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, op
         ctx.beginPath(); ctx.moveTo(x, y)
         ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len)
         ctx.strokeStyle = hsl(baseH, sat, light, (0.35 + energy * 0.5) * pass.alphaMul)
-        ctx.lineWidth = 0.5 + energy * 4
+        ctx.lineWidth = 1.5 + energy * 5
         ctx.stroke()
       } else if (type < 0.75) {
         // Flung arc (directional momentum)
@@ -807,11 +807,11 @@ export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, op
         const cpy = (y + y2) / 2 + Math.sin(angle + Math.PI / 2) * perpOff
         ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(cpx, cpy, x2, y2)
         ctx.strokeStyle = hsl(baseH, sat, light, (0.3 + energy * 0.4) * pass.alphaMul)
-        ctx.lineWidth = 0.8 + energy * 5
+        ctx.lineWidth = 2 + energy * 6
         ctx.stroke()
       } else if (type < 0.90) {
         // Pooled blob (irregular)
-        const baseR = 4 + energy * 16 * rand()
+        const baseR = 8 + energy * 20 * rand()
         ctx.beginPath()
         for (let p = 0; p < 8; p++) {
           const a = (p / 8) * Math.PI * 2
@@ -833,7 +833,7 @@ export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, op
         ctx.beginPath(); ctx.moveTo(x, y)
         ctx.bezierCurveTo(x2 + (rand() - 0.5) * 60, y2 + (rand() - 0.5) * 60, x2, y2, x3, y3)
         ctx.strokeStyle = hsl(baseH, sat, light, (0.45 + energy * 0.35) * pass.alphaMul)
-        ctx.lineWidth = 4 + energy * 10
+        ctx.lineWidth = 7 + energy * 12
         ctx.stroke()
       }
     }
@@ -856,12 +856,16 @@ export function renderRiley(ctx, w, h, chroma, model, mood, shape, beatLum, opts
   const baseH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
   const sat = Math.min(100, baseSat * mood.satMod)
 
-  // Horizontal wave lines
-  for (let y = 0; y < h; y += 4) {
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])
+  const secH = (PITCH_HUES[ranked[1]] + mood.warmth * 40 + 360) % 360
+  const isLight = opts?.theme === 'light'
+
+  // Layer 1: primary wave lines (horizontal, tighter spacing)
+  for (let y = 0; y < h; y += 3) {
     const pitchIdx = Math.floor((y / h) * 12) % 12
     const energy = chroma[pitchIdx] / maxC
     const lH = (PITCH_HUES[pitchIdx] + mood.warmth * 40 + 360) % 360
-    const amp = harmonic * 25 * energy
+    const amp = harmonic * 30 * energy
     const beatB = (beatLum?.[pitchIdx] ?? 0.5)
 
     ctx.beginPath()
@@ -870,8 +874,25 @@ export function renderRiley(ctx, w, h, chroma, model, mood, shape, beatLum, opts
       const py = y + wave
       x === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py)
     }
-    ctx.strokeStyle = hsl(lH, sat, 30 + energy * 30 + beatB * 10 + mood.lightMod * 15, 0.15 + energy * 0.35)
-    ctx.lineWidth = 1 + energy
+    ctx.strokeStyle = hsl(lH, sat, (isLight ? 25 : 30) + energy * 30 + beatB * 10 + mood.lightMod * 15, 0.2 + energy * 0.4)
+    ctx.lineWidth = 2 + energy * 2
+    ctx.stroke()
+  }
+
+  // Layer 2: moiré interference — second wave set at 90° phase offset, secondary color
+  for (let y = 0; y < h; y += 3) {
+    const pitchIdx = Math.floor((y / h) * 12) % 12
+    const energy = chroma[pitchIdx] / maxC
+    const amp = harmonic * 20 * energy
+
+    ctx.beginPath()
+    for (let x = 0; x <= w; x += 2) {
+      const wave = Math.sin(x / w * freq + y * 0.02 + Math.PI / 2) * amp
+      const py = y + wave
+      x === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py)
+    }
+    ctx.strokeStyle = hsl(secH, sat * 0.8, (isLight ? 30 : 35) + energy * 25, 0.1 + energy * 0.2)
+    ctx.lineWidth = 1.5 + energy * 1.5
     ctx.stroke()
   }
 }
@@ -974,9 +995,45 @@ export function renderTwombly(ctx, w, h, chroma, model, mood, shape, beatLum, op
       const cpx = x + (rand() - 0.5) * len * 0.8, cpy = y + (rand() - 0.5) * len * 0.5
       ctx.quadraticCurveTo(cpx, cpy, nx, ny)
     }
-    ctx.strokeStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8 + mood.lightMod * 10, 0.1 + energy * 0.25)
-    ctx.lineWidth = 0.5 + energy * 2
+    ctx.strokeStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8 + mood.lightMod * 10, 0.2 + energy * 0.4)
+    ctx.lineWidth = 0.8 + energy * 2.5
     ctx.lineCap = 'round'; ctx.stroke()
+  }
+
+  // Pseudo-handwriting clusters
+  const isLight = opts?.theme === 'light'
+  const inkC = isLight ? 'rgba(0,0,0,' : 'rgba(255,255,255,'
+  for (let line = 0; line < 6; line++) {
+    const lx = w * (0.1 + rand() * 0.6)
+    const ly = h * (0.15 + line * 0.12 + (rand() - 0.5) * 0.05)
+    const nWords = 3 + Math.round(rand() * 4)
+    let cx = lx
+    for (let word = 0; word < nWords; word++) {
+      const nLetters = 3 + Math.round(rand() * 5)
+      ctx.beginPath(); ctx.moveTo(cx, ly)
+      for (let l = 0; l < nLetters; l++) {
+        cx += 3 + rand() * 5
+        const cy = ly + (rand() - 0.5) * 8
+        ctx.lineTo(cx, cy)
+        cx += 2 + rand() * 3
+        ctx.lineTo(cx, ly + (rand() - 0.5) * 6)
+      }
+      ctx.strokeStyle = `${inkC}${0.12 + rand() * 0.15})`
+      ctx.lineWidth = 0.8 + rand() * 0.7; ctx.stroke()
+      cx += 8 + rand() * 12
+    }
+  }
+
+  // Scratched-out erasure zones
+  for (let z = 0; z < 3; z++) {
+    const zx = w * (0.1 + rand() * 0.7), zy = h * (0.2 + rand() * 0.6)
+    for (let s = 0; s < 8; s++) {
+      ctx.beginPath()
+      ctx.moveTo(zx + (rand() - 0.5) * 10, zy + s * 3)
+      ctx.lineTo(zx + 60 + rand() * 40, zy + s * 3 + (rand() - 0.5) * 4)
+      ctx.strokeStyle = `${inkC}${0.08 + rand() * 0.1})`
+      ctx.lineWidth = 0.5 + rand(); ctx.stroke()
+    }
   }
 }
 
@@ -1140,7 +1197,10 @@ export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, o
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
   }
 
-  // Aggressive marks
+  const isLight = opts?.theme === 'light'
+  const outlineC = isLight ? 'rgba(0,0,0,0.6)' : 'rgba(255,255,255,0.15)'
+
+  // Aggressive marks — tripled density
   for (let i = 0; i < 12; i++) {
     const energy = chroma[i] / maxC
     if (energy < 0.1) continue
@@ -1148,27 +1208,59 @@ export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, o
     const sat = Math.min(100, baseSat * mood.satMod)
     const beatB = (beatLum?.[i] ?? 0.5)
 
-    for (let m = 0; m < Math.round(energy * 6); m++) {
+    for (let m = 0; m < Math.round(4 + energy * 18); m++) {
       const x = w * rand(), y = h * rand()
-      const sz = 5 + energy * 25 * rand()
+      const sz = 10 + energy * 40 * rand()
 
-      ctx.fillStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8, 0.3 + energy * 0.4)
+      ctx.fillStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8, 0.4 + energy * 0.4)
       ctx.fillRect(x - sz / 2, y - sz / 3, sz, sz * 0.6)
+      ctx.strokeStyle = outlineC; ctx.lineWidth = 2; ctx.strokeRect(x - sz / 2, y - sz / 3, sz, sz * 0.6)
 
-      // Crown motif for dominant bins
-      if (energy > 0.7 && rand() > 0.6) {
-        const crSz = sz * 0.5
-        ctx.strokeStyle = hsl(50, 80, 60, 0.4)
-        ctx.lineWidth = 1.5
+      // Crown motif — more frequent, bigger
+      if (energy > 0.5 && rand() > 0.5) {
+        const crSz = sz * 0.8
+        ctx.strokeStyle = hsl(50, 80, 60, 0.5); ctx.lineWidth = 2
         ctx.beginPath()
-        ctx.moveTo(x - crSz, y - sz)
-        ctx.lineTo(x - crSz * 0.5, y - sz - crSz)
-        ctx.lineTo(x, y - sz)
-        ctx.lineTo(x + crSz * 0.5, y - sz - crSz)
-        ctx.lineTo(x + crSz, y - sz)
+        ctx.moveTo(x - crSz, y - sz * 0.4)
+        ctx.lineTo(x - crSz * 0.5, y - sz * 0.4 - crSz)
+        ctx.lineTo(x, y - sz * 0.4)
+        ctx.lineTo(x + crSz * 0.5, y - sz * 0.4 - crSz)
+        ctx.lineTo(x + crSz, y - sz * 0.4)
         ctx.stroke()
       }
     }
+  }
+
+  // Scrawled text dashes
+  ctx.lineCap = 'round'
+  for (let t = 0; t < 25; t++) {
+    const x = w * rand(), y = h * rand()
+    const dw = 20 + rand() * 40
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + dw, y + (rand() - 0.5) * 4)
+    ctx.strokeStyle = outlineC; ctx.lineWidth = 1.5 + rand() * 1.5; ctx.stroke()
+  }
+
+  // Crossed-out X marks
+  for (let x_i = 0; x_i < 10; x_i++) {
+    const x = w * rand(), y = h * rand(), sz = 15 + rand() * 15
+    ctx.strokeStyle = outlineC; ctx.lineWidth = 1.5
+    ctx.beginPath(); ctx.moveTo(x - sz, y - sz); ctx.lineTo(x + sz, y + sz); ctx.stroke()
+    ctx.beginPath(); ctx.moveTo(x + sz, y - sz); ctx.lineTo(x - sz, y + sz); ctx.stroke()
+  }
+
+  // Arrows
+  for (let a = 0; a < 6; a++) {
+    const x = w * rand(), y = h * rand()
+    const angle = rand() * Math.PI * 2, len = 30 + rand() * 30
+    const x2 = x + Math.cos(angle) * len, y2 = y + Math.sin(angle) * len
+    ctx.strokeStyle = outlineC; ctx.lineWidth = 2
+    ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x2, y2); ctx.stroke()
+    ctx.beginPath()
+    ctx.moveTo(x2, y2)
+    ctx.lineTo(x2 - Math.cos(angle - 0.4) * 10, y2 - Math.sin(angle - 0.4) * 10)
+    ctx.moveTo(x2, y2)
+    ctx.lineTo(x2 - Math.cos(angle + 0.4) * 10, y2 - Math.sin(angle + 0.4) * 10)
+    ctx.stroke()
   }
 }
 
