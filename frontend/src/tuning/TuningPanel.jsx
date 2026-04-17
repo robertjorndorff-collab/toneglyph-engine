@@ -13,24 +13,25 @@ const SLIDERS = [
   { key: '_palette_warmth', label: 'Warmth', min: -1, max: 1, step: 0.01 },
 ]
 
-const SCORE_DEFS = [
-  { key: 'p1', label: 'P1 Zeitgeist', fn: r => r.pillar1?.zeitgeist_score, pillar: 'pillar1' },
-  { key: 'p2', label: 'P2 DNA', fn: r => r.pillar2?.dna_score, pillar: 'pillar2' },
-  { key: 'p3h', label: 'P3 Harmonic', fn: r => r.pillar3?.harmonic_complexity, pillar: 'pillar3' },
-  { key: 'p3r', label: 'P3 Rhythmic', fn: r => r.pillar3?.rhythmic_complexity, pillar: null },
-  { key: 'p4', label: 'P4 Hidden Cx', fn: r => r.pillar4?.hidden_complexity_score, pillar: 'pillar4' },
-  { key: 'p5', label: 'P5 Novelty', fn: r => r.pillar5?.novelty_score, pillar: 'pillar5' },
+const SCORES = [
+  { key: 'p1', label: 'Zeitgeist', fn: r => r.pillar1?.zeitgeist_score },
+  { key: 'p2', label: 'DNA', fn: r => r.pillar2?.dna_score },
+  { key: 'p3h', label: 'Harmonic', fn: r => r.pillar3?.harmonic_complexity },
+  { key: 'p3r', label: 'Rhythmic', fn: r => r.pillar3?.rhythmic_complexity },
+  { key: 'p4', label: 'Hidden Cx', fn: r => r.pillar4?.hidden_complexity_score },
+  { key: 'p5', label: 'Novelty', fn: r => r.pillar5?.novelty_score },
 ]
+
+const modelNames = Object.keys(MODELS)
 
 export default function TuningPanel() {
   const { activeTab, tuningOpen, dispatch } = useStudio()
-  const [expanded, setExpanded] = useState(null)
+  const [addingLayer, setAddingLayer] = useState(false)
 
   const tab = activeTab
   const binding = tab ? (BINDINGS[tab.bindingName] || BINDINGS['Default']) : null
   const rv = tab?.result ? resolveBindings(binding, tab.result) : {}
-
-  function toggleExpand(key) { setExpanded(expanded === key ? null : key) }
+  const layers = tab?.layers || []
 
   return (
     <div className={`tp ${tuningOpen ? 'tp-open' : 'tp-closed'}`}>
@@ -43,15 +44,59 @@ export default function TuningPanel() {
             <button className="tp-x" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button>
           </div>
 
+          {/* ── Layers ── */}
           <div className="tp-group">
-            <h4 className="tp-group-label">Visual Model</h4>
-            <select className="tp-select" value={tab.modelName}
-              onChange={e => dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { modelName: e.target.value } })}>
-              {Object.keys(MODELS).map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-            <p className="tp-desc">{MODELS[tab.modelName]?.description?.slice(0, 90)}</p>
+            <div className="tp-group-head">
+              <h4 className="tp-group-label">Layers</h4>
+              {layers.length < 5 && (
+                <button className="tp-reset-btn" onClick={() => setAddingLayer(!addingLayer)}>+ Add</button>
+              )}
+            </div>
+
+            {addingLayer && (
+              <select className="tp-select" value="" onChange={e => {
+                if (e.target.value) {
+                  dispatch({ type: 'LAYER_ADD', modelName: e.target.value })
+                  setAddingLayer(false)
+                }
+              }}>
+                <option value="">Select model…</option>
+                {modelNames.map(n => <option key={n} value={n}>{n}</option>)}
+              </select>
+            )}
+
+            <div className="tp-layers">
+              {layers.map((layer, idx) => (
+                <div key={layer.id} className="tp-layer"
+                  draggable
+                  onDragStart={e => e.dataTransfer.setData('text/plain', String(idx))}
+                  onDragOver={e => e.preventDefault()}
+                  onDrop={e => {
+                    e.preventDefault()
+                    const from = parseInt(e.dataTransfer.getData('text/plain'), 10)
+                    if (!isNaN(from) && from !== idx) dispatch({ type: 'LAYER_REORDER', from, to: idx })
+                  }}
+                >
+                  <button className={`tp-layer-eye ${layer.visible !== false ? 'on' : ''}`}
+                    onClick={() => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { visible: layer.visible === false ? true : false } })}>
+                    {layer.visible !== false ? '●' : '○'}
+                  </button>
+                  <span className="tp-layer-name">{layer.modelName}</span>
+                  <input className="tp-layer-opacity" type="range" min="0" max="1" step="0.05"
+                    value={layer.opacity ?? 1}
+                    onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { opacity: parseFloat(e.target.value) } })}
+                    title={`${Math.round((layer.opacity ?? 1) * 100)}%`}
+                  />
+                  <span className="tp-layer-pct">{Math.round((layer.opacity ?? 1) * 100)}</span>
+                  {layers.length > 1 && (
+                    <button className="tp-layer-rm" onClick={() => dispatch({ type: 'LAYER_REMOVE', layerId: layer.id })}>×</button>
+                  )}
+                </div>
+              ))}
+            </div>
           </div>
 
+          {/* ── Binding ── */}
           <div className="tp-group">
             <h4 className="tp-group-label">Pillar Binding</h4>
             <select className="tp-select" value={tab.bindingName}
@@ -60,6 +105,7 @@ export default function TuningPanel() {
             </select>
           </div>
 
+          {/* ── Live Overrides ── */}
           <div className="tp-group">
             <div className="tp-group-head">
               <h4 className="tp-group-label">Live Overrides</h4>
@@ -79,120 +125,26 @@ export default function TuningPanel() {
             })}
           </div>
 
+          {/* ── Pillar Scores ── */}
           {tab.result && (
-            <div className="tp-group tp-pillars">
+            <div className="tp-group">
               <h4 className="tp-group-label">Pillar Scores</h4>
-              {SCORE_DEFS.map(({ key, label, fn, pillar }) => {
-                const v = fn(tab.result)
-                const isOpen = expanded === key
-                return (
-                  <div key={key}>
-                    <div className="tp-score" onClick={() => pillar && toggleExpand(key)} style={{ cursor: pillar ? 'pointer' : 'default' }}>
-                      <span className="tp-score-name">{label} {pillar && (isOpen ? '▾' : '▸')}</span>
+              <div className="tp-scores">
+                {SCORES.map(({ key, label, fn }) => {
+                  const v = fn(tab.result)
+                  return (
+                    <div key={key} className="tp-score">
+                      <span className="tp-score-name">{label}</span>
                       <div className="tp-score-track"><div className="tp-score-bar" style={{ width: `${(v || 0) * 100}%` }} /></div>
                       <span className="tp-score-val">{fmt(v, 2)}</span>
                     </div>
-                    {isOpen && pillar && <PillarDetail pillar={pillar} result={tab.result} />}
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </div>
           )}
         </div>
       )}
-    </div>
-  )
-}
-
-function PillarDetail({ pillar, result }) {
-  const data = result[pillar]
-  if (!data) return <p className="tp-detail-err">No data</p>
-
-  if (pillar === 'pillar1') {
-    return (
-      <div className="tp-detail">
-        <Row label="Era" val={data.era_alignment} />
-        <Row label="Genre" val={data.genre_position} />
-        <Row label="Score" val={fmt(data.zeitgeist_score, 3)} />
-        {data.cultural_reasoning && <p className="tp-reasoning">{data.cultural_reasoning}</p>}
-      </div>
-    )
-  }
-
-  if (pillar === 'pillar2') {
-    return (
-      <div className="tp-detail">
-        <Row label="DNA Score" val={fmt(data.dna_score, 3)} />
-        {data.influence_vector?.map((inf, i) => (
-          <div key={i} className="tp-influence">
-            <span className="tp-inf-name">{inf.name}</span>
-            <div className="tp-score-track"><div className="tp-score-bar" style={{ width: `${(inf.weight || 0) * 100}%` }} /></div>
-            <span className="tp-inf-w">{fmt(inf.weight, 2)}</span>
-          </div>
-        ))}
-        {data.dna_reasoning && <p className="tp-reasoning">{data.dna_reasoning}</p>}
-      </div>
-    )
-  }
-
-  if (pillar === 'pillar3') {
-    const cm = data.chroma?.mean || []
-    const mx = Math.max(...cm, 1e-9)
-    return (
-      <div className="tp-detail">
-        <Row label="Key" val={`${data.key?.name} (${fmt(data.key?.confidence, 2)})`} />
-        <Row label="Tempo" val={`${fmt(data.tempo?.bpm, 1)} BPM (stab ${fmt(data.tempo?.stability, 2)})`} />
-        <Row label="Beats" val={data.beats?.count} />
-        <Row label="Harmonic" val={fmt(data.harmonic_complexity, 3)} />
-        <Row label="Rhythmic" val={fmt(data.rhythmic_complexity, 3)} />
-        {cm.length === 12 && (
-          <div className="tp-chroma">
-            {cm.map((v, i) => (
-              <div key={i} className="tp-chroma-col">
-                <div className="tp-chroma-bar" style={{ height: `${(v / mx) * 100}%` }} />
-                <span>{PITCH_NAMES[i]}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-    )
-  }
-
-  if (pillar === 'pillar4') {
-    const q = data.johari_quadrant_assignments || {}
-    return (
-      <div className="tp-detail">
-        <Row label="Hidden Cx" val={fmt(data.hidden_complexity_score, 3)} />
-        {['open', 'blind', 'hidden', 'unknown'].map(quad => q[quad] && (
-          <div key={quad} className="tp-quad">
-            <span className="tp-quad-label">{quad}</span>
-            <ul>{q[quad].map((x, i) => <li key={i}>{x}</li>)}</ul>
-          </div>
-        ))}
-        {data.johari_reasoning && <p className="tp-reasoning">{data.johari_reasoning}</p>}
-      </div>
-    )
-  }
-
-  if (pillar === 'pillar5') {
-    return (
-      <div className="tp-detail">
-        <Row label="Novelty" val={fmt(data.novelty_score, 3)} />
-        <Row label="Fingerprint" val={data.fingerprint_hash?.slice(0, 24) + '…'} mono />
-        <Row label="Peaks" val={`${data.peaks?.count} (${fmt(data.peaks?.density_per_sec, 1)}/s)`} />
-      </div>
-    )
-  }
-
-  return null
-}
-
-function Row({ label, val, mono }) {
-  return (
-    <div className="tp-row">
-      <span className="tp-row-label">{label}</span>
-      <span className={`tp-row-val ${mono ? 'mono' : ''}`}>{val ?? '—'}</span>
     </div>
   )
 }

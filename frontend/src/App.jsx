@@ -87,14 +87,14 @@ function CompareView({ audioRef }) {
       <div className="compare-header"><span>Compare</span><button className="compare-exit" onClick={() => dispatch({ type: 'EXIT_COMPARE' })}>Exit (Esc)</button></div>
       <div className="compare-glyphs">
         <div className="compare-col">
-          <GlyphErrorBoundary hex={aTab.result?.cas?.rgb?.hex}><GlyphCanvas result={aTab.result} modelName={aTab.modelName} bindingName={aTab.bindingName} glyphMode="animated" overrides={aTab.overrides} audioRef={audioRef} /></GlyphErrorBoundary>
+          <GlyphErrorBoundary hex={aTab.result?.cas?.rgb?.hex}><GlyphCanvas result={aTab.result} modelName={aTab.modelName} layers={aTab.layers} bindingName={aTab.bindingName} glyphMode="animated" overrides={aTab.overrides} audioRef={audioRef} /></GlyphErrorBoundary>
           <p className="compare-name">{aTab.filename?.replace(/\.[^.]+$/, '')}</p>
         </div>
         <div className="compare-diff">
           {scores.slice(0, 6).map(([label, a, b]) => <div key={label} className="diff-row"><span className="diff-val">{fmt(a, 2)}</span><span className={`diff-label ${Math.abs((a||0)-(b||0))>0.1?'diff-hi':''}`}>{label}</span><span className="diff-val">{fmt(b, 2)}</span></div>)}
         </div>
         <div className="compare-col">
-          <GlyphErrorBoundary hex={bTab.result?.cas?.rgb?.hex}><GlyphCanvas result={bTab.result} modelName={bTab.modelName} bindingName={bTab.bindingName} glyphMode="animated" overrides={bTab.overrides} audioRef={audioRef} /></GlyphErrorBoundary>
+          <GlyphErrorBoundary hex={bTab.result?.cas?.rgb?.hex}><GlyphCanvas result={bTab.result} modelName={bTab.modelName} layers={bTab.layers} bindingName={bTab.bindingName} glyphMode="animated" overrides={bTab.overrides} audioRef={audioRef} /></GlyphErrorBoundary>
           <p className="compare-name">{bTab.filename?.replace(/\.[^.]+$/, '')}</p>
         </div>
       </div>
@@ -170,7 +170,7 @@ function Studio() {
 
   const glyphEl = cas && (
     <GlyphErrorBoundary hex={cas.rgb?.hex}>
-      <GlyphCanvas result={tab.result} modelName={tab.modelName} bindingName={tab.bindingName}
+      <GlyphCanvas result={tab.result} modelName={tab.modelName} layers={tab.layers} bindingName={tab.bindingName}
         glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
     </GlyphErrorBoundary>
   )

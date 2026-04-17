@@ -1,0 +1,12 @@
+{
+  "name": "Cy Twombly",
+  "description": "Frantic gestural scrawls and looping calligraphic marks on open fields, evoking raw handwriting and graffiti.",
+  "school": "Cy Twombly — abstract expressionism, gestural abstraction",
+  "renderer": "twombly",
+  "references": ["Untitled (New York City) (1968)", "Fifty Days at Iliam (1978)", "Bacchus (2005)"],
+  "principles": ["negative_space", "sharp_vs_soft", "scale_variation", "no_chartjunk"],
+  "shape_strategy": { "type": "gestural_scrawl", "base_radius": 0.43, "stroke_count": 40, "loop_density": 0.6 },
+  "color_strategy": { "type": "sparse_palette", "sectors": 3, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "stroke_draw": true, "stroke_speed_factor": 0.10 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": false, "center_bloom": false }
+}

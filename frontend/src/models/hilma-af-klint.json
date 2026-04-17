@@ -1,0 +1,12 @@
+{
+  "name": "Hilma af Klint",
+  "description": "Diagrammatic spiritual compositions with concentric forms, biomorphic symmetry, and esoteric color symbolism predating mainstream abstraction.",
+  "school": "Hilma af Klint — pre-abstract spiritual painting, theosophy",
+  "renderer": "hilma",
+  "references": ["The Ten Largest, No. 7, Adulthood (1907)", "Group IV, The Ten Largest, No. 3, Youth (1907)", "Altarpiece No. 1 (1915)"],
+  "principles": ["color_interaction", "negative_space", "complexity_encoding", "genre_legibility"],
+  "shape_strategy": { "type": "spiritual_diagram", "base_radius": 0.45, "concentric_rings": 5, "petal_count": 8, "bilateral_symmetry": true },
+  "color_strategy": { "type": "multi_sector", "sectors": 8, "chromatic_circle": true, "mood_tinting": true, "gradient_stops_min": 3, "gradient_stops_max": 7, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": true, "rotation_speed_factor": 0.02, "pulse": true, "pulse_factor": 0.03, "beat_sync": true },
+  "lighting_strategy": { "glow_backdrop": true, "glow_radius_factor": 1.6, "rim_outline": true, "center_bloom": true }
+}

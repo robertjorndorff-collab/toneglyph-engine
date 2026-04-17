@@ -1,0 +1,12 @@
+{
+  "name": "Bridget Riley",
+  "description": "Undulating wave patterns and precise optical illusions that create the sensation of movement on a static surface.",
+  "school": "Bridget Riley — Op Art, perceptual abstraction",
+  "renderer": "riley",
+  "references": ["Movement in Squares (1961)", "Fall (1963)", "Blaze (1964)"],
+  "principles": ["color_interaction", "sharp_vs_soft", "multi_scale_legibility", "determinism"],
+  "shape_strategy": { "type": "wave_pattern", "base_radius": 0.42, "wave_frequency": 12, "wave_amplitude": 0.08 },
+  "color_strategy": { "type": "binary_contrast", "sectors": 2, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.01, "beat_sync": true, "wave_shift": true, "wave_shift_speed": 0.05 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": false, "center_bloom": false }
+}

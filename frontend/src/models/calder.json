@@ -1,0 +1,12 @@
+{
+  "name": "Calder",
+  "description": "Balanced kinetic compositions of flat organic shapes connected by wire-like lines, evoking hanging mobiles in gentle motion.",
+  "school": "Alexander Calder — kinetic sculpture, biomorphic abstraction",
+  "renderer": "calder",
+  "references": ["Lobster Trap and Fish Tail (1939)", "Red Mobile (1956)", "Untitled (1976)"],
+  "principles": ["scale_variation", "negative_space", "color_interaction", "sharp_vs_soft"],
+  "shape_strategy": { "type": "mobile_balanced", "base_radius": 0.44, "branch_depth": 4, "leaf_shapes": 8 },
+  "color_strategy": { "type": "primary_palette", "sectors": 5, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": true, "rotation_speed_factor": 0.03, "pulse": false, "beat_sync": true, "swing_motion": true, "swing_damping": 0.92 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": true, "center_bloom": false }
+}

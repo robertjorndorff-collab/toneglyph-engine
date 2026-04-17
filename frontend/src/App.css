@@ -317,6 +317,27 @@
   color: var(--text-h); width: 36px; text-align: right; flex-shrink: 0;
 }
 
+/* ── Layers panel ── */
+
+.tp-layers { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
+.tp-layer {
+  display: flex; align-items: center; gap: 6px; padding: 5px 6px;
+  background: rgba(255,255,255,0.03); border-radius: 4px;
+  cursor: grab; font-size: 0.6875rem;
+}
+.tp-layer:active { cursor: grabbing; }
+.tp-layer-eye {
+  background: none; border: none; cursor: pointer; font-size: 0.75rem;
+  color: var(--accent); width: 18px; text-align: center; flex-shrink: 0;
+  opacity: 0.8; transition: opacity 0.15s;
+}
+.tp-layer-eye:not(.on) { opacity: 0.3; color: var(--text); }
+.tp-layer-name { flex: 1; color: var(--text-h); font-family: var(--mono); font-size: 0.625rem; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-layer-opacity { width: 50px; accent-color: var(--accent); height: 3px; flex-shrink: 0; }
+.tp-layer-pct { font-family: var(--mono); font-size: 0.5rem; color: var(--text); width: 20px; text-align: right; flex-shrink: 0; }
+.tp-layer-rm { background: none; border: none; color: var(--text); cursor: pointer; font-size: 0.75rem; opacity: 0.4; flex-shrink: 0; }
+.tp-layer-rm:hover { opacity: 1; color: #ef4444; }
+
 /* ── Pillar detail (expandable in tuning panel) ── */
 
 .tp-pillars { }

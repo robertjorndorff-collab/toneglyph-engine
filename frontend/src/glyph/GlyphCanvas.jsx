@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { PITCH_NAMES, PITCH_HUES, num, arr, resolveBindings } from '../shared/constants.js'
-import { renderChromatic, renderBertin, renderRothko, renderKlee, renderMondrian, renderAlbers, renderTufte, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
+import { renderChromatic, renderBertin, renderRothko, renderKlee, renderMondrian, renderAlbers, renderTufte, renderKandinsky, renderPollock, renderRiley, renderHilma, renderTwombly, renderMartin, renderCalder, renderLewitt, renderBasquiat, renderMonet, renderFrankenthaler, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
 
 const RENDERERS = {
   chromatic: renderChromatic,
@@ -10,6 +10,17 @@ const RENDERERS = {
   mondrian: renderMondrian,
   albers: renderAlbers,
   tufte: renderTufte,
+  kandinsky: renderKandinsky,
+  pollock: renderPollock,
+  riley: renderRiley,
+  hilma: renderHilma,
+  twombly: renderTwombly,
+  martin: renderMartin,
+  calder: renderCalder,
+  lewitt: renderLewitt,
+  basquiat: renderBasquiat,
+  monet: renderMonet,
+  frankenthaler: renderFrankenthaler,
 }
 
 const modelFiles = import.meta.glob('../models/*.json', { eager: true })
@@ -22,12 +33,20 @@ export const BINDINGS = Object.fromEntries(
   Object.entries(bindingFiles).map(([, mod]) => { const d = mod.default || mod; return [d.name, d] })
 )
 
-export default function GlyphCanvas({ result, modelName, bindingName, glyphMode, overrides, audioRef }) {
+export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
   const [tooltip, setTooltip] = useState(null)
 
-  const model = MODELS[modelName] || MODELS['Chromatic'] || Object.values(MODELS)[0]
+  // Support both legacy single-model and new layer system
+  const activeLayers = useMemo(() => {
+    if (layers && layers.length > 0) return layers.filter(l => l.visible !== false)
+    const name = modelName || 'Chromatic'
+    return [{ id: '_default', modelName: name, opacity: 1, visible: true }]
+  }, [layers, modelName])
+
+  const primaryModel = MODELS[activeLayers[0]?.modelName] || MODELS['Chromatic'] || Object.values(MODELS)[0]
+  const model = primaryModel
   const binding = BINDINGS[bindingName] || BINDINGS['Default'] || Object.values(BINDINGS)[0]
 
   const baseRv = useMemo(() => resolveBindings(binding, result), [binding, result])
@@ -114,11 +133,10 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
     const tempo = num(rv['beat_sync.tempo'], 120)
     const beatInterval = Math.max(0.05, 60 / tempo)
 
-    const renderFn = RENDERERS[model.renderer] || renderChromatic
-    const doRotate = model.animation_strategy?.rotation !== false && glyphMode !== 'static'
-    const doPulse = model.animation_strategy?.pulse !== false && glyphMode !== 'static'
-    const spinFactor = model.animation_strategy?.rotation_speed_factor || 0.15
-    const pulseFactor = model.animation_strategy?.pulse_factor || 0.06
+    const doRotate = primaryModel.animation_strategy?.rotation !== false && glyphMode !== 'static'
+    const doPulse = primaryModel.animation_strategy?.pulse !== false && glyphMode !== 'static'
+    const spinFactor = primaryModel.animation_strategy?.rotation_speed_factor || 0.15
+    const pulseFactor = primaryModel.animation_strategy?.pulse_factor || 0.06
 
     const opts = {
       novelty: num(rv['color.saturation'], 0.5),
@@ -129,19 +147,25 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
       harmonic: num(result?.pillar3?.harmonic_complexity, 0.5),
     }
 
+    // Offscreen canvases for layer compositing
+    const layerCanvases = activeLayers.map(() => {
+      const c = document.createElement('canvas')
+      c.width = cssW * dpr; c.height = cssH * dpr
+      const lctx = c.getContext('2d')
+      lctx.scale(dpr, dpr)
+      return { canvas: c, ctx: lctx }
+    })
+
     const startTime = performance.now()
 
     function getActiveChroma(t) {
       if (glyphMode === 'static') return chroma
-
       if (glyphMode === 'temporal' && audioRef?.current && !audioRef.current.paused) {
         const ct = audioRef.current.currentTime
         const bi = findNearestBeat(beatTimes, ct)
         const vec = chromaBS[bi]
         if (Array.isArray(vec) && vec.length === 12) return vec
       }
-
-      // animated: cycle through beat_sync at tempo
       if (chromaBS.length > 0) {
         const bi = Math.floor((t / beatInterval) % chromaBS.length)
         const vec = chromaBS[bi]
@@ -150,38 +174,59 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
       return chroma
     }
 
-    function getBeatLum(activeChroma) {
-      const mx = Math.max(...activeChroma, 0.001)
-      return activeChroma.map(v => num(v) / mx)
+    function getBeatLum(ac) { const mx = Math.max(...ac, 0.001); return ac.map(v => num(v) / mx) }
+
+    function renderAllLayers(activeChroma, beatLum, rotation, pulse) {
+      // Clear main canvas
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+      ctx.clearRect(0, 0, cssW, cssH)
+      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, cssW, cssH)
+
+      // Render each layer to its offscreen canvas
+      for (let li = 0; li < activeLayers.length; li++) {
+        const layer = activeLayers[li]
+        const lModel = MODELS[layer.modelName] || MODELS['Chromatic']
+        const lRenderFn = RENDERERS[lModel?.renderer] || renderChromatic
+        const lctx = layerCanvases[li].ctx
+        const lShape = computeShape(chroma, mfcc, complexity, symmetry,
+          lModel?.shape_strategy?.vertex_count || 720,
+          lModel?.shape_strategy?.organic_distortion !== false)
+
+        lctx.setTransform(dpr, 0, 0, dpr, 0, 0)
+        lctx.clearRect(0, 0, cssW, cssH)
+        lRenderFn(lctx, cssW, cssH, activeChroma, lModel, mood, lShape, beatLum, opts)
+      }
+
+      // Composite layers onto main canvas with transforms
+      ctx.save()
+      ctx.translate(cssW / 2, cssH / 2)
+      ctx.rotate(rotation); ctx.scale(pulse, pulse)
+      ctx.translate(-cssW / 2, -cssH / 2)
+
+      for (let li = 0; li < activeLayers.length; li++) {
+        const layer = activeLayers[li]
+        ctx.globalAlpha = num(layer.opacity, 1)
+        ctx.globalCompositeOperation = layer.blendMode || 'source-over'
+        ctx.drawImage(layerCanvases[li].canvas, 0, 0, cssW, cssH)
+      }
+      ctx.globalAlpha = 1
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.restore()
     }
 
     function frame() {
       const t = (performance.now() - startTime) / 1000
       const rotation = doRotate ? t * num(rv['motion.spin'], 0.3) * spinFactor : 0
       const pulse = doPulse ? 1 + Math.sin(t * 3) * num(rv['motion.pulse'], 0.2) * pulseFactor : 1
-
       const activeChroma = getActiveChroma(t)
       const beatLum = getBeatLum(activeChroma)
-
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      ctx.save()
-      ctx.translate(cssW / 2, cssH / 2)
-      ctx.rotate(rotation)
-      ctx.scale(pulse, pulse)
-      ctx.translate(-cssW / 2, -cssH / 2)
-
-      renderFn(ctx, cssW, cssH, activeChroma, model, mood, shape, beatLum, opts)
-
-      ctx.restore()
-
+      renderAllLayers(activeChroma, beatLum, rotation, pulse)
       if (glyphMode === 'static') return
       animRef.current = requestAnimationFrame(frame)
     }
 
     if (glyphMode === 'static') {
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-      if (isChromatic) renderChromatic(ctx, cssW, cssH, chroma, model, mood, shape, getBeatLum(chroma), opts)
-      else renderBertin(ctx, cssW, cssH, chroma, model, shape, getBeatLum(chroma))
+      renderAllLayers(chroma, getBeatLum(chroma), 0, 1)
     } else {
       animRef.current = requestAnimationFrame(frame)
     }

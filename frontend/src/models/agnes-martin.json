@@ -1,0 +1,12 @@
+{
+  "name": "Agnes Martin",
+  "description": "Subtle pencil grids and delicate horizontal bands on pale fields. Extreme restraint where minute variations carry all the meaning.",
+  "school": "Agnes Martin — minimalism, grid painting",
+  "renderer": "martin",
+  "references": ["Friendship (1963)", "The Tree (1964)", "Untitled #5 (1998)"],
+  "principles": ["negative_space", "no_chartjunk", "determinism", "multi_scale_legibility"],
+  "shape_strategy": { "type": "grid_minimal", "base_radius": 0.40, "grid_divisions": 16, "line_weight": 0.5 },
+  "color_strategy": { "type": "monochrome", "sectors": 1, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.005, "beat_sync": true },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": false, "center_bloom": false }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Sol LeWitt",
+  "description": "Systematic algorithmic wall drawings built from simple geometric rules — lines, arcs, and color bands executed with programmatic precision.",
+  "school": "Sol LeWitt — conceptual art, minimalism",
+  "renderer": "lewitt",
+  "references": ["Wall Drawing #118 (1971)", "Wall Drawing #260 (1975)", "Wall Drawing #1136 (2004)"],
+  "principles": ["determinism", "complexity_encoding", "no_chartjunk", "multi_scale_legibility"],
+  "shape_strategy": { "type": "algorithmic_wall", "base_radius": 0.41, "rule_layers": 4, "line_directions": 4 },
+  "color_strategy": { "type": "systematic_palette", "sectors": 4, "chromatic_circle": false, "mood_tinting": false, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "rule_reveal": true, "reveal_speed_factor": 0.06 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": false, "center_bloom": false }
+}

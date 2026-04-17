@@ -53,6 +53,7 @@ function reducer(state, action) {
         error: null,
         uploading: true,
         modelName: 'Chromatic',
+        layers: [{ id: crypto.randomUUID(), modelName: 'Chromatic', opacity: 1, visible: true }],
         bindingName: 'Default',
         glyphMode: 'animated',
         overrides: {},
@@ -110,6 +111,38 @@ function reducer(state, action) {
       return { ...state, compareTabIds: null }
     case 'SET_WORKSPACE_MODE':
       return { ...state, workspaceMode: action.mode }
+    case 'LAYER_ADD': {
+      const tabs = state.tabs.map(t => {
+        if (t.id !== state.activeTabId || (t.layers?.length || 0) >= 5) return t
+        return { ...t, layers: [...(t.layers || []), { id: crypto.randomUUID(), modelName: action.modelName, opacity: 1, visible: true }] }
+      })
+      return { ...state, tabs }
+    }
+    case 'LAYER_REMOVE': {
+      const tabs = state.tabs.map(t => {
+        if (t.id !== state.activeTabId) return t
+        const layers = (t.layers || []).filter(l => l.id !== action.layerId)
+        return { ...t, layers: layers.length ? layers : t.layers }
+      })
+      return { ...state, tabs }
+    }
+    case 'LAYER_UPDATE': {
+      const tabs = state.tabs.map(t => {
+        if (t.id !== state.activeTabId) return t
+        return { ...t, layers: (t.layers || []).map(l => l.id === action.layerId ? { ...l, ...action.patch } : l) }
+      })
+      return { ...state, tabs }
+    }
+    case 'LAYER_REORDER': {
+      const tabs = state.tabs.map(t => {
+        if (t.id !== state.activeTabId) return t
+        const layers = [...(t.layers || [])]
+        const [moved] = layers.splice(action.from, 1)
+        layers.splice(action.to, 0, moved)
+        return { ...t, layers }
+      })
+      return { ...state, tabs }
+    }
     default:
       return state
   }

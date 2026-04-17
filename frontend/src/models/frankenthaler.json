@@ -1,0 +1,12 @@
+{
+  "name": "Frankenthaler",
+  "description": "Translucent color fields created by soak-stain technique, where thinned pigment bleeds into raw canvas creating luminous organic pools.",
+  "school": "Helen Frankenthaler — color field painting, post-painterly abstraction",
+  "renderer": "frankenthaler",
+  "references": ["Mountains and Sea (1952)", "Interior Landscape (1964)", "Nature Abhors a Vacuum (1973)"],
+  "principles": ["color_interaction", "negative_space", "scale_variation", "sharp_vs_soft"],
+  "shape_strategy": { "type": "soak_stain", "base_radius": 0.45, "pool_count": 5, "bleed_factor": 0.3 },
+  "color_strategy": { "type": "color_field", "sectors": 4, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "screen" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.02, "beat_sync": true, "bleed_motion": true, "bleed_speed_factor": 0.04 },
+  "lighting_strategy": { "glow_backdrop": true, "glow_radius_factor": 1.5, "rim_outline": false, "center_bloom": false }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Basquiat",
+  "description": "Dense layered compositions mixing crude figures, text fragments, crowns, and crossed-out words in raw aggressive color.",
+  "school": "Jean-Michel Basquiat — neo-expressionism, street art",
+  "renderer": "basquiat",
+  "references": ["Untitled (Skull) (1981)", "Hollywood Africans (1983)", "Riding with Death (1988)"],
+  "principles": ["complexity_encoding", "scale_variation", "color_interaction", "genre_legibility"],
+  "shape_strategy": { "type": "raw_layered", "base_radius": 0.46, "layer_count": 6, "glyph_density": 0.7, "crown_motif": true },
+  "color_strategy": { "type": "multi_sector", "sectors": 8, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "multiply" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.03, "beat_sync": true, "layer_flicker": true, "flicker_rate": 0.15 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.2, "rim_outline": true, "center_bloom": false }
+}

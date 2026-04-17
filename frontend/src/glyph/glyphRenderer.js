@@ -603,6 +603,568 @@ export function renderTufte(ctx, w, h, chroma, model, mood, shape, beatLum) {
   ctx.restore()
 }
 
+// ── Seeded PRNG (deterministic per song) ─────────────────────────────
+
+function mulberry32(seed) {
+  return function() {
+    let t = seed += 0x6D2B79F5
+    t = Math.imul(t ^ t >>> 15, t | 1)
+    t ^= t + Math.imul(t ^ t >>> 7, t | 61)
+    return ((t ^ t >>> 14) >>> 0) / 4294967296
+  }
+}
+
+function chromaSeed(chroma) {
+  return chroma.reduce((a, v, i) => a + Math.round(v * 1000) * (i + 1), 0) | 0
+}
+
+// ── Kandinsky: asymmetric composition (NOT centered radial) ──────────
+
+export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const novelty = num(opts.novelty, 0.5)
+  const depth = num(opts.depth, 0.5)
+  const emissive = num(opts.emissive, 0.3)
+  const rhythmic = num(opts.rhythmic, 0.3)
+  const baseSat = 30 + novelty * 55
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  // Glow
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const glowH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  const gg = ctx.createRadialGradient(w * 0.4, h * 0.5, 0, w * 0.4, h * 0.5, Math.max(w, h) * 0.7)
+  gg.addColorStop(0, hsl(glowH, 40, 25, emissive * 0.2))
+  gg.addColorStop(1, 'hsla(0,0%,0%,0)')
+  ctx.fillStyle = gg; ctx.fillRect(0, 0, w, h)
+
+  ctx.globalCompositeOperation = 'screen'
+
+  // Scattered circles (multiple focal points)
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.1) continue
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const cx = w * (0.15 + rand() * 0.7)
+    const cy = h * (0.15 + rand() * 0.7)
+    const r = Math.min(w, h) * energy * 0.18
+    const beatB = (beatLum?.[i] ?? 0.5) * 10
+
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
+    g.addColorStop(0, hsl(baseH, sat, 40 + mood.lightMod * 20 + beatB, 0.5 * energy))
+    g.addColorStop(0.7, hsl(baseH, sat * 0.8, 25, 0.2 * energy))
+    g.addColorStop(1, hsl(baseH, sat, 10, 0))
+    ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
+  }
+
+  // Bold intersecting lines
+  ctx.globalCompositeOperation = 'screen'
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.15) continue
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const beatB = (beatLum?.[i] ?? 0.5)
+
+    ctx.strokeStyle = hsl(baseH, sat, 45 + mood.lightMod * 20 + beatB * 15, 0.2 + energy * 0.3)
+    ctx.lineWidth = 1 + energy * 4
+    ctx.lineCap = 'round'
+
+    const x1 = w * rand(), y1 = h * rand()
+    const x2 = w * rand(), y2 = h * rand()
+
+    ctx.beginPath()
+    if (rhythmic > 0.4) {
+      ctx.moveTo(x1, y1); ctx.lineTo(x2, y2)
+    } else {
+      const cpx = w * rand(), cpy = h * rand()
+      ctx.moveTo(x1, y1); ctx.quadraticCurveTo(cpx, cpy, x2, y2)
+    }
+    ctx.stroke()
+  }
+
+  // Hard geometric shapes contrasting soft circles
+  ctx.globalCompositeOperation = 'source-over'
+  for (let i = 0; i < 6; i++) {
+    const idx = Math.floor(rand() * 12)
+    const energy = chroma[idx] / maxC
+    if (energy < 0.2) continue
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod * 0.6)
+    const cx = w * (0.1 + rand() * 0.8), cy = h * (0.1 + rand() * 0.8)
+    const sz = Math.min(w, h) * energy * 0.08
+
+    ctx.strokeStyle = hsl(baseH, sat, 50 + mood.lightMod * 15, 0.15 + energy * 0.15)
+    ctx.lineWidth = 1
+    if (rand() > 0.5) {
+      ctx.beginPath(); ctx.moveTo(cx, cy - sz); ctx.lineTo(cx + sz, cy + sz); ctx.lineTo(cx - sz, cy + sz); ctx.closePath(); ctx.stroke()
+    } else {
+      ctx.strokeRect(cx - sz / 2, cy - sz / 2, sz, sz)
+    }
+  }
+}
+
+// ── Pollock: drip/splatter ───────────────────────────────────────────
+
+export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 25 + novelty * 50
+  const density = 80 + num(opts.rhythmic, 0.3) * 300
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+
+  for (let d = 0; d < density; d++) {
+    const idx = Math.floor(rand() * 12)
+    const energy = chroma[idx] / maxC
+    if (energy < 0.1 && rand() > 0.3) continue
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 25 + energy * 40 + mood.lightMod * 15
+    const beatB = (beatLum?.[idx] ?? 0.5)
+
+    const x = w * rand(), y = h * rand()
+    const type = rand()
+
+    if (type < 0.4) {
+      // Splatter dot
+      const r = 1 + energy * 8 * rand()
+      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+      ctx.fillStyle = hsl(baseH, sat, light + beatB * 8, 0.3 + energy * 0.5)
+      ctx.fill()
+    } else if (type < 0.7) {
+      // Drip line
+      const len = 10 + energy * 60 * rand()
+      const angle = Math.PI / 2 + (rand() - 0.5) * 0.5
+      ctx.beginPath(); ctx.moveTo(x, y)
+      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len)
+      ctx.strokeStyle = hsl(baseH, sat, light, 0.15 + energy * 0.3)
+      ctx.lineWidth = 0.5 + energy * 2 * rand()
+      ctx.stroke()
+    } else {
+      // Flung arc
+      const cp1x = x + (rand() - 0.5) * 80, cp1y = y + (rand() - 0.5) * 80
+      const x2 = x + (rand() - 0.5) * 120, y2 = y + (rand() - 0.5) * 120
+      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(cp1x, cp1y, x2, y2)
+      ctx.strokeStyle = hsl(baseH, sat, light, 0.1 + energy * 0.2)
+      ctx.lineWidth = 0.3 + energy * 1.5
+      ctx.stroke()
+    }
+  }
+}
+
+// ── Riley: Op Art moiré ──────────────────────────────────────────────
+
+export function renderRiley(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const novelty = num(opts.novelty, 0.5)
+  const harmonic = num(opts.harmonic, 0.5)
+  const baseSat = 30 + novelty * 50
+  const tempo = num(opts.rhythmic, 0.3)
+  const freq = 8 + tempo * 30
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const baseH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  const sat = Math.min(100, baseSat * mood.satMod)
+
+  // Horizontal wave lines
+  for (let y = 0; y < h; y += 4) {
+    const pitchIdx = Math.floor((y / h) * 12) % 12
+    const energy = chroma[pitchIdx] / maxC
+    const lH = (PITCH_HUES[pitchIdx] + mood.warmth * 40 + 360) % 360
+    const amp = harmonic * 25 * energy
+    const beatB = (beatLum?.[pitchIdx] ?? 0.5)
+
+    ctx.beginPath()
+    for (let x = 0; x <= w; x += 2) {
+      const wave = Math.sin(x / w * freq + y * 0.02) * amp
+      const py = y + wave
+      x === 0 ? ctx.moveTo(x, py) : ctx.lineTo(x, py)
+    }
+    ctx.strokeStyle = hsl(lH, sat, 30 + energy * 30 + beatB * 10 + mood.lightMod * 15, 0.15 + energy * 0.35)
+    ctx.lineWidth = 1 + energy
+    ctx.stroke()
+  }
+}
+
+// ── Hilma af Klint: spiritual diagrams ───────────────────────────────
+
+export function renderHilma(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const cx = w / 2, cy = h / 2
+  const R = Math.min(w, h) * 0.42
+  const maxC = Math.max(...chroma, 0.001)
+  const novelty = num(opts.novelty, 0.5)
+  const depth = num(opts.depth, 0.5)
+  const baseSat = 25 + novelty * 45
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.save(); ctx.translate(cx, cy)
+
+  // Concentric rings with petal divisions
+  const nRings = 5 + Math.round(depth * 4)
+  for (let ring = nRings - 1; ring >= 0; ring--) {
+    const t = (ring + 1) / (nRings + 1)
+    const r = R * t
+    const idx = ring % 12
+    const energy = chroma[idx] / maxC
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 20 + energy * 30 + mood.lightMod * 20
+    const beatB = (beatLum?.[idx] ?? 0.5) * 8
+
+    ctx.beginPath(); ctx.arc(0, 0, r, 0, Math.PI * 2)
+    ctx.fillStyle = hsl(baseH, sat, light + beatB, 0.15 + energy * 0.2)
+    ctx.fill()
+    ctx.strokeStyle = hsl(baseH, sat * 0.7, light + 15, 0.2)
+    ctx.lineWidth = 0.8; ctx.stroke()
+  }
+
+  // Petal/sectional dividers
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2
+    const energy = chroma[i] / maxC
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    ctx.beginPath(); ctx.moveTo(0, 0)
+    ctx.lineTo(Math.cos(angle) * R, Math.sin(angle) * R)
+    ctx.strokeStyle = hsl(baseH, 20, 50, 0.1 + energy * 0.1)
+    ctx.lineWidth = 0.5; ctx.stroke()
+  }
+
+  // Central flower
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.2) continue
+    const angle = (i / 12) * Math.PI * 2
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const petalR = R * 0.25 * energy
+
+    ctx.save(); ctx.rotate(angle)
+    ctx.beginPath(); ctx.ellipse(0, -petalR * 0.6, petalR * 0.3, petalR * 0.7, 0, 0, Math.PI * 2)
+    ctx.fillStyle = hsl(baseH, sat, 35 + mood.lightMod * 15, 0.2 + energy * 0.2)
+    ctx.fill(); ctx.restore()
+  }
+
+  ctx.restore()
+}
+
+// ── Twombly: gestural scrawl ─────────────────────────────────────────
+
+export function renderTwombly(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const nMarks = 30 + Math.round(num(opts.rhythmic, 0.3) * 80)
+  const baseSat = 15 + num(opts.novelty, 0.5) * 25
+
+  ctx.clearRect(0, 0, w, h)
+  // Muted warm ground
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  ctx.fillStyle = hsl(groundH, 8, 10 + mood.lightMod * 5, 1)
+  ctx.fillRect(0, 0, w, h)
+
+  for (let m = 0; m < nMarks; m++) {
+    const idx = Math.floor(rand() * 12)
+    const energy = chroma[idx] / maxC
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const beatB = (beatLum?.[idx] ?? 0.5)
+
+    const x = w * rand(), y = h * rand()
+    const len = 20 + energy * 100 * rand()
+
+    ctx.beginPath(); ctx.moveTo(x, y)
+    // Scratchy loops
+    for (let s = 0; s < 3 + Math.round(energy * 4); s++) {
+      const nx = x + (rand() - 0.5) * len, ny = y + (rand() - 0.5) * len * 0.6
+      const cpx = x + (rand() - 0.5) * len * 0.8, cpy = y + (rand() - 0.5) * len * 0.5
+      ctx.quadraticCurveTo(cpx, cpy, nx, ny)
+    }
+    ctx.strokeStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8 + mood.lightMod * 10, 0.1 + energy * 0.25)
+    ctx.lineWidth = 0.5 + energy * 2
+    ctx.lineCap = 'round'; ctx.stroke()
+  }
+}
+
+// ── Agnes Martin: grid minimalism ────────────────────────────────────
+
+export function renderMartin(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const harmonic = num(opts.harmonic, 0.5)
+  const novelty = num(opts.novelty, 0.5)
+  const gridSize = Math.max(8, 60 - Math.round(harmonic * 40))
+
+  ctx.clearRect(0, 0, w, h)
+  // Very subtle warm/cool ground
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  ctx.fillStyle = hsl(groundH, 5 * mood.satMod, 6 + mood.lightMod * 3, 1)
+  ctx.fillRect(0, 0, w, h)
+
+  // Color wash — barely visible
+  const washG = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.5)
+  washG.addColorStop(0, hsl(groundH, 15, 15, novelty * 0.08))
+  washG.addColorStop(1, 'hsla(0,0%,0%,0)')
+  ctx.fillStyle = washG; ctx.fillRect(0, 0, w, h)
+
+  // Grid lines — pencil thin
+  ctx.strokeStyle = `rgba(255,255,255,0.04)`
+  ctx.lineWidth = 0.5
+  for (let x = gridSize; x < w; x += gridSize) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke()
+  }
+  for (let y = gridSize; y < h; y += gridSize) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
+  }
+
+  // At intersections: tiny dots for dominant chroma bins
+  for (let x = gridSize; x < w; x += gridSize) {
+    for (let y = gridSize; y < h; y += gridSize) {
+      const idx = Math.floor(((x / w) * 12 + (y / h) * 3)) % 12
+      const energy = chroma[idx] / maxC
+      if (energy < 0.4) continue
+      const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+      const beatB = (beatLum?.[idx] ?? 0.5)
+      ctx.beginPath(); ctx.arc(x, y, 0.8 + energy, 0, Math.PI * 2)
+      ctx.fillStyle = hsl(baseH, 20 * mood.satMod, 30 + energy * 20 + beatB * 5, 0.06 + energy * 0.06)
+      ctx.fill()
+    }
+  }
+}
+
+// ── Calder: mobile balanced shapes ───────────────────────────────────
+
+export function renderCalder(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const baseSat = 35 + num(opts.novelty, 0.5) * 45
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+
+  // Balanced asymmetric shapes
+  const elements = []
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.1) continue
+    elements.push({
+      x: w * (0.15 + rand() * 0.7),
+      y: h * (0.15 + rand() * 0.7),
+      r: 8 + energy * Math.min(w, h) * 0.08,
+      hue: (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360,
+      energy, idx: i,
+    })
+  }
+
+  // Wire lines connecting elements
+  ctx.strokeStyle = 'rgba(255,255,255,0.08)'
+  ctx.lineWidth = 1
+  for (let i = 1; i < elements.length; i++) {
+    const a = elements[i - 1], b = elements[i]
+    ctx.beginPath(); ctx.moveTo(a.x, a.y); ctx.lineTo(b.x, b.y); ctx.stroke()
+  }
+
+  // Shapes
+  for (const el of elements) {
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 30 + el.energy * 30 + mood.lightMod * 15
+    const beatB = (beatLum?.[el.idx] ?? 0.5) * 8
+    ctx.fillStyle = hsl(el.hue, sat, light + beatB, 0.5 + el.energy * 0.4)
+
+    if (rand() > 0.5) {
+      ctx.beginPath(); ctx.arc(el.x, el.y, el.r, 0, Math.PI * 2); ctx.fill()
+    } else {
+      ctx.fillRect(el.x - el.r, el.y - el.r * 0.6, el.r * 2, el.r * 1.2)
+    }
+  }
+}
+
+// ── Sol LeWitt: algorithmic wall drawings ─────────────────────────────
+
+export function renderLewitt(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const baseSat = 20 + num(opts.novelty, 0.5) * 30
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#0a0a0a'; ctx.fillRect(0, 0, w, h)
+
+  const pad = 20
+
+  // Instruction 1: arcs from each corner (P1 zeitgeist)
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)'; ctx.lineWidth = 0.5
+  const nArcs = Math.round(3 + num(opts.depth, 0.5) * 8)
+  for (let i = 1; i <= nArcs; i++) {
+    const r = (Math.min(w, h) / nArcs) * i
+    ;[[0,0],[w,0],[0,h],[w,h]].forEach(([ox, oy]) => {
+      ctx.beginPath(); ctx.arc(ox, oy, r, 0, Math.PI * 2); ctx.stroke()
+    })
+  }
+
+  // Instruction 2: lines from each chroma bin (P3)
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.15) continue
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const beatB = (beatLum?.[i] ?? 0.5)
+
+    const angle = (i / 12) * Math.PI * 2
+    const x1 = w / 2 + Math.cos(angle) * pad
+    const y1 = h / 2 + Math.sin(angle) * pad
+    const x2 = w / 2 + Math.cos(angle) * Math.min(w, h) * 0.45
+    const y2 = h / 2 + Math.sin(angle) * Math.min(w, h) * 0.45
+
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2)
+    ctx.strokeStyle = hsl(baseH, sat, 40 + beatB * 10 + mood.lightMod * 15, 0.15 + energy * 0.3)
+    ctx.lineWidth = 1 + energy * 2; ctx.stroke()
+
+    // Mark at endpoint
+    ctx.beginPath(); ctx.arc(x2, y2, 2 + energy * 4, 0, Math.PI * 2)
+    ctx.fillStyle = hsl(baseH, sat, 50, 0.2 + energy * 0.3); ctx.fill()
+  }
+}
+
+// ── Basquiat: raw dense layered ──────────────────────────────────────
+
+export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 40 + novelty * 40
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#0a0808'; ctx.fillRect(0, 0, w, h)
+
+  // Dense grid underlay
+  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5
+  for (let x = 0; x < w; x += 30 + rand() * 20) {
+    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke()
+  }
+  for (let y = 0; y < h; y += 25 + rand() * 20) {
+    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke()
+  }
+
+  // Aggressive marks
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    if (energy < 0.1) continue
+    const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const beatB = (beatLum?.[i] ?? 0.5)
+
+    for (let m = 0; m < Math.round(energy * 6); m++) {
+      const x = w * rand(), y = h * rand()
+      const sz = 5 + energy * 25 * rand()
+
+      ctx.fillStyle = hsl(baseH, sat, 35 + energy * 25 + beatB * 8, 0.3 + energy * 0.4)
+      ctx.fillRect(x - sz / 2, y - sz / 3, sz, sz * 0.6)
+
+      // Crown motif for dominant bins
+      if (energy > 0.7 && rand() > 0.6) {
+        const crSz = sz * 0.5
+        ctx.strokeStyle = hsl(50, 80, 60, 0.4)
+        ctx.lineWidth = 1.5
+        ctx.beginPath()
+        ctx.moveTo(x - crSz, y - sz)
+        ctx.lineTo(x - crSz * 0.5, y - sz - crSz)
+        ctx.lineTo(x, y - sz)
+        ctx.lineTo(x + crSz * 0.5, y - sz - crSz)
+        ctx.lineTo(x + crSz, y - sz)
+        ctx.stroke()
+      }
+    }
+  }
+}
+
+// ── Monet: impressionist brushstrokes ─────────────────────────────────
+
+export function renderMonet(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 25 + novelty * 40
+  const nStrokes = 400 + Math.round(num(opts.harmonic, 0.5) * 600)
+
+  ctx.clearRect(0, 0, w, h)
+  // Atmospheric ground
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  ctx.fillStyle = hsl(groundH, 10 * mood.satMod, 8 + mood.lightMod * 5, 1)
+  ctx.fillRect(0, 0, w, h)
+
+  // Tiny dappled brushstrokes
+  for (let s = 0; s < nStrokes; s++) {
+    const idx = Math.floor(rand() * 12)
+    const energy = chroma[idx] / maxC
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + (rand() - 0.5) * 15 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 20 + energy * 35 + mood.lightMod * 15
+    const beatB = (beatLum?.[idx] ?? 0.5)
+
+    const x = w * rand(), y = h * rand()
+    const sw = 3 + energy * 8 * rand()
+    const sh = 2 + energy * 4 * rand()
+    const angle = (rand() - 0.5) * 0.8
+
+    ctx.save()
+    ctx.translate(x, y); ctx.rotate(angle)
+    ctx.fillStyle = hsl(baseH, sat, light + beatB * 6, 0.08 + energy * 0.15)
+    ctx.beginPath(); ctx.ellipse(0, 0, sw, sh, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.restore()
+  }
+}
+
+// ── Frankenthaler: color field soak-stain ─────────────────────────────
+
+export function renderFrankenthaler(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const rand = mulberry32(chromaSeed(chroma))
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 30 + novelty * 45
+
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+
+  // Rank chroma bins by energy
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])
+
+  // Large organic color regions that bleed into each other
+  for (let pass = 0; pass < 3; pass++) {
+    ctx.globalCompositeOperation = pass === 0 ? 'source-over' : 'screen'
+
+    for (let r = 0; r < Math.min(8, ranked.length); r++) {
+      const idx = ranked[r]
+      const energy = chroma[idx] / maxC
+      if (energy < 0.1) continue
+      const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+      const sat = Math.min(100, baseSat * mood.satMod)
+      const light = 18 + energy * 28 + mood.lightMod * 18
+      const beatB = (beatLum?.[idx] ?? 0.5) * 6
+
+      // Position biased by rank (dominant = more central territory)
+      const cx = w * (0.2 + rand() * 0.6)
+      const cy = h * (0.2 + rand() * 0.6)
+      const rx = w * (0.15 + energy * 0.25) * (0.7 + rand() * 0.6)
+      const ry = h * (0.12 + energy * 0.22) * (0.7 + rand() * 0.6)
+
+      // Organic blob via multi-stop radial gradient
+      const g = ctx.createRadialGradient(cx, cy, 0, cx + (rand() - 0.5) * 20, cy + (rand() - 0.5) * 20, Math.max(rx, ry))
+      const alpha = (pass === 0 ? 0.25 : 0.12) * (0.5 + energy * 0.5)
+      g.addColorStop(0, hsl(baseH, sat, light + beatB + 10, alpha))
+      g.addColorStop(0.4, hsl(baseH, sat * 0.9, light + beatB, alpha * 0.8))
+      g.addColorStop(0.7, hsl((baseH + 8) % 360, sat * 0.7, light - 5, alpha * 0.4))
+      g.addColorStop(1, hsl(baseH, sat, light - 10, 0))
+
+      ctx.fillStyle = g
+      ctx.beginPath(); ctx.ellipse(cx, cy, rx, ry, rand() * Math.PI, 0, Math.PI * 2); ctx.fill()
+    }
+  }
+  ctx.globalCompositeOperation = 'source-over'
+}
+
 export function getSectorAtPoint(mx, my, cx, cy, maxR) {
   const dx = mx - cx, dy = my - cy
   const dist = Math.sqrt(dx * dx + dy * dy)

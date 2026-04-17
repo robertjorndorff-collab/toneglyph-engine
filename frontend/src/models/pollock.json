@@ -1,0 +1,12 @@
+{
+  "name": "Pollock",
+  "description": "Explosive drip and splatter patterns with layered trajectories. All-over composition where no single focal point dominates.",
+  "school": "Jackson Pollock — abstract expressionism, action painting",
+  "renderer": "pollock",
+  "references": ["Number 1A, 1948 (1948)", "Autumn Rhythm (Number 30) (1950)", "Convergence (1952)"],
+  "principles": ["scale_variation", "complexity_encoding", "no_chartjunk", "determinism"],
+  "shape_strategy": { "type": "drip_splatter", "base_radius": 0.44, "splatter_count": 80, "trajectory_layers": 5 },
+  "color_strategy": { "type": "multi_sector", "sectors": 6, "chromatic_circle": false, "mood_tinting": true, "blend_mode": "multiply" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "drip_motion": true, "drip_speed_factor": 0.12 },
+  "lighting_strategy": { "glow_backdrop": false, "glow_radius_factor": 1.0, "rim_outline": false, "center_bloom": false }
+}
