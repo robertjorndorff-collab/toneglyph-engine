@@ -248,7 +248,7 @@ function Studio() {
         /* ── D MODE: small glyph + pillar grid ── */
         <div className="workspace ws-detail">
           <div className="ws-detail-main">
-            <div className="ws-detail-top">
+            <div className="ws-detail-header">
               <div className="ws-detail-glyph">{glyphEl}</div>
               {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />}
               {audioEl}
