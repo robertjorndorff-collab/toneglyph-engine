@@ -716,48 +716,126 @@ export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, 
 
 export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
-  const baseSat = 25 + novelty * 50
-  const density = 80 + num(opts.rhythmic, 0.3) * 300
+  const rhythmic = num(opts.rhythmic, 0.3)
+  const baseSat = 50 + novelty * 40
+  const totalMarks = Math.round(1200 + rhythmic * 2000)
+  const isLight = opts.theme === 'light'
+
+  // Rank chroma bins by energy for color hierarchy
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])
+
+  // Density hotspots (2-4 per composition, seeded)
+  const hsRand = mulberry32(stableSeed(opts, chroma))
+  const nHotspots = 2 + Math.round(hsRand() * 2)
+  const hotspots = []
+  for (let i = 0; i < nHotspots; i++) {
+    hotspots.push({ x: w * (0.15 + hsRand() * 0.7), y: h * (0.15 + hsRand() * 0.7), r: Math.min(w, h) * (0.2 + hsRand() * 0.15) })
+  }
 
   ctx.clearRect(0, 0, w, h)
+  ctx.lineCap = 'round'
 
-  for (let d = 0; d < density; d++) {
-    const idx = Math.floor(rand() * 12)
-    const energy = chroma[idx] / maxC
-    if (energy < 0.1 && rand() > 0.3) continue
-    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
-    const sat = Math.min(100, baseSat * mood.satMod)
-    const light = 25 + energy * 40 + mood.lightMod * 15
-    const beatB = (beatLum?.[idx] ?? 0.5)
+  // 4 layering passes
+  const passes = [
+    { frac: 0.40, lightBase: isLight ? 60 : 15, lightRange: 15, satMul: 0.6, alphaMul: 0.6, seedOff: 0 },
+    { frac: 0.30, lightBase: isLight ? 45 : 25, lightRange: 25, satMul: 1.0, alphaMul: 0.8, seedOff: 31 },
+    { frac: 0.20, lightBase: isLight ? 35 : 30, lightRange: 30, satMul: 1.0, alphaMul: 1.0, seedOff: 67, topBinsOnly: true },
+    { frac: 0.10, lightBase: isLight ? 25 : 45, lightRange: 20, satMul: 1.1, alphaMul: 1.0, seedOff: 97 },
+  ]
 
-    const x = w * rand(), y = h * rand()
-    const type = rand()
+  for (const pass of passes) {
+    const rand = mulberry32(stableSeed(opts, chroma) + pass.seedOff)
+    const nMarks = Math.round(totalMarks * pass.frac)
 
-    if (type < 0.4) {
-      // Splatter dot
-      const r = 1 + energy * 8 * rand()
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
-      ctx.fillStyle = hsl(baseH, sat, light + beatB * 8, 0.3 + energy * 0.5)
-      ctx.fill()
-    } else if (type < 0.7) {
-      // Drip line
-      const len = 10 + energy * 60 * rand()
-      const angle = Math.PI / 2 + (rand() - 0.5) * 0.5
-      ctx.beginPath(); ctx.moveTo(x, y)
-      ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len)
-      ctx.strokeStyle = hsl(baseH, sat, light, 0.15 + energy * 0.3)
-      ctx.lineWidth = 0.5 + energy * 2 * rand()
-      ctx.stroke()
-    } else {
-      // Flung arc
-      const cp1x = x + (rand() - 0.5) * 80, cp1y = y + (rand() - 0.5) * 80
-      const x2 = x + (rand() - 0.5) * 120, y2 = y + (rand() - 0.5) * 120
-      ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(cp1x, cp1y, x2, y2)
-      ctx.strokeStyle = hsl(baseH, sat, light, 0.1 + energy * 0.2)
-      ctx.lineWidth = 0.3 + energy * 1.5
-      ctx.stroke()
+    for (let d = 0; d < nMarks; d++) {
+      // Pick chroma bin (color hierarchy: 70% top 3, 20% 4-7, 10% 8-12)
+      let idx
+      if (pass.topBinsOnly) {
+        idx = ranked[Math.floor(rand() * 3)]
+      } else {
+        const r = rand()
+        if (r < 0.7) idx = ranked[Math.floor(rand() * 3)]
+        else if (r < 0.9) idx = ranked[3 + Math.floor(rand() * 4)]
+        else idx = ranked[7 + Math.floor(rand() * Math.min(5, ranked.length - 7))]
+      }
+      if (idx === undefined) idx = ranked[0]
+
+      const energy = chroma[idx] / maxC
+      const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+      const sat = Math.min(100, baseSat * mood.satMod * pass.satMul)
+      const light = pass.lightBase + energy * pass.lightRange + mood.lightMod * 10
+      const beatB = (beatLum?.[idx] ?? 0.5)
+
+      // Position: 60% near hotspots, 40% random
+      let x, y
+      if (rand() < 0.6) {
+        const hs = hotspots[Math.floor(rand() * nHotspots)]
+        const angle = rand() * Math.PI * 2
+        const dist = rand() * hs.r
+        x = hs.x + Math.cos(angle) * dist
+        y = hs.y + Math.sin(angle) * dist
+      } else {
+        x = w * rand(); y = h * rand()
+      }
+
+      const type = rand()
+
+      if (type < 0.30) {
+        // Splatter dot
+        const r = 0.5 + energy * 12 * rand()
+        ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2)
+        ctx.fillStyle = hsl(baseH, sat, light + beatB * 6, (0.5 + energy * 0.4) * pass.alphaMul)
+        ctx.fill()
+      } else if (type < 0.55) {
+        // Drip line (near-vertical)
+        const len = 30 + energy * 180 * rand()
+        const angle = Math.PI / 2 + (rand() - 0.5) * 0.4
+        ctx.beginPath(); ctx.moveTo(x, y)
+        ctx.lineTo(x + Math.cos(angle) * len, y + Math.sin(angle) * len)
+        ctx.strokeStyle = hsl(baseH, sat, light, (0.35 + energy * 0.5) * pass.alphaMul)
+        ctx.lineWidth = 0.5 + energy * 4
+        ctx.stroke()
+      } else if (type < 0.75) {
+        // Flung arc (directional momentum)
+        const angle = rand() * Math.PI * 2
+        const len = 80 + energy * 300 * rand()
+        const perpOff = len * (0.2 + rand() * 0.3) * (rand() > 0.5 ? 1 : -1)
+        const x2 = x + Math.cos(angle) * len
+        const y2 = y + Math.sin(angle) * len
+        const cpx = (x + x2) / 2 + Math.cos(angle + Math.PI / 2) * perpOff
+        const cpy = (y + y2) / 2 + Math.sin(angle + Math.PI / 2) * perpOff
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.quadraticCurveTo(cpx, cpy, x2, y2)
+        ctx.strokeStyle = hsl(baseH, sat, light, (0.3 + energy * 0.4) * pass.alphaMul)
+        ctx.lineWidth = 0.8 + energy * 5
+        ctx.stroke()
+      } else if (type < 0.90) {
+        // Pooled blob (irregular)
+        const baseR = 4 + energy * 16 * rand()
+        ctx.beginPath()
+        for (let p = 0; p < 8; p++) {
+          const a = (p / 8) * Math.PI * 2
+          const rr = baseR * (0.6 + rand() * 0.8)
+          const px = x + Math.cos(a) * rr, py = y + Math.sin(a) * rr
+          p === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+        }
+        ctx.closePath()
+        ctx.fillStyle = hsl(baseH, sat, light + beatB * 4, (0.5 + energy * 0.4) * pass.alphaMul)
+        ctx.fill()
+      } else {
+        // Massive trace (long serpentine pour)
+        const angle = rand() * Math.PI * 2
+        const len = 200 + energy * 500 * rand()
+        const x2 = x + Math.cos(angle) * len * 0.5
+        const y2 = y + Math.sin(angle) * len * 0.5
+        const x3 = x + Math.cos(angle + (rand() - 0.5) * 0.8) * len
+        const y3 = y + Math.sin(angle + (rand() - 0.5) * 0.8) * len
+        ctx.beginPath(); ctx.moveTo(x, y)
+        ctx.bezierCurveTo(x2 + (rand() - 0.5) * 60, y2 + (rand() - 0.5) * 60, x2, y2, x3, y3)
+        ctx.strokeStyle = hsl(baseH, sat, light, (0.45 + energy * 0.35) * pass.alphaMul)
+        ctx.lineWidth = 4 + energy * 10
+        ctx.stroke()
+      }
     }
   }
 }
