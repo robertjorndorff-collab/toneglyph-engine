@@ -1,14 +1,12 @@
 import { useStudio } from './StudioContext'
+import Tip from '../shared/Tooltip'
 
 export default function TabBar() {
   const { tabs, activeTabId, compareTabIds, dispatch } = useStudio()
 
   function onTabClick(id, e) {
-    if (e.metaKey || e.ctrlKey) {
-      dispatch({ type: 'TAB_COMPARE', id })
-    } else {
-      dispatch({ type: 'TAB_SELECT', id })
-    }
+    if (e.metaKey || e.ctrlKey) dispatch({ type: 'TAB_COMPARE', id })
+    else dispatch({ type: 'TAB_SELECT', id })
   }
 
   function onDragStart(e, idx) { e.dataTransfer.setData('text/plain', String(idx)) }
@@ -21,29 +19,28 @@ export default function TabBar() {
 
   return (
     <div className="tab-bar">
+      <img src="/logo.png" alt="ToneGlyph" className="tab-logo" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })} />
       {tabs.map((tab, idx) => {
         const isActive = tab.id === activeTabId
         const isCompare = compareTabIds?.includes(tab.id)
         const hexDot = tab.result?.cas?.rgb?.hex || '#555'
+        const name = tab.uploading ? 'Analyzing...' : (tab.filename || 'New').replace(/\.[^.]+$/, '').slice(0, 30)
         return (
-          <div
-            key={tab.id}
+          <div key={tab.id}
             className={`tab ${isActive ? 'active' : ''} ${isCompare ? 'compare' : ''}`}
             onClick={e => onTabClick(tab.id, e)}
-            draggable
-            onDragStart={e => onDragStart(e, idx)}
-            onDragOver={onDragOver}
-            onDrop={e => onDrop(e, idx)}
-          >
+            draggable onDragStart={e => onDragStart(e, idx)} onDragOver={onDragOver} onDrop={e => onDrop(e, idx)}>
             <span className="tab-dot" style={{ background: hexDot }} />
-            <span className="tab-name">
-              {tab.uploading ? 'Analyzing...' : (tab.filename || 'New').replace(/\.[^.]+$/, '').slice(0, 30)}
-            </span>
-            <button className="tab-close" onClick={e => { e.stopPropagation(); dispatch({ type: 'TAB_CLOSE', id: tab.id }) }}>×</button>
+            <span className="tab-name">{name}</span>
+            <Tip text="Close Tab">
+              <button className="tab-close" onClick={e => { e.stopPropagation(); dispatch({ type: 'TAB_CLOSE', id: tab.id }) }}>×</button>
+            </Tip>
           </div>
         )
       })}
-      <button className="tab-new" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })} title="Analyze a new song">+</button>
+      <Tip text="New Song" shortcut="+">
+        <button className="tab-new" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })}>+</button>
+      </Tip>
     </div>
   )
 }

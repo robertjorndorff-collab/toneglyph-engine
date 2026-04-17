@@ -580,6 +580,40 @@
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 
+/* ── Logo ─────────────────────────────────────────────────────────── */
+
+.home-logo { width: 120px; height: auto; margin-bottom: 8px; }
+.home-title { font-size: 1.5rem; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; color: var(--text-h); opacity: 0.7; margin: 0; }
+
+.tab-logo { height: 22px; width: auto; margin-right: 10px; cursor: pointer; opacity: 0.7; transition: opacity 0.15s; flex-shrink: 0; }
+.tab-logo:hover { opacity: 1; }
+
+/* ── Tooltips ─────────────────────────────────────────────────────── */
+
+.tip {
+  background: #1a1a2e; color: #fff; font-family: var(--mono); font-size: 0.6875rem;
+  padding: 5px 10px; border-radius: 4px; white-space: nowrap;
+  pointer-events: none; animation: tip-fade 150ms ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+.tip-arrow {
+  position: absolute; left: 50%; width: 0; height: 0;
+  border-left: 5px solid transparent; border-right: 5px solid transparent;
+}
+
+.tip-above .tip-arrow { bottom: -5px; transform: translateX(-50%); border-top: 5px solid #1a1a2e; }
+.tip-below .tip-arrow { top: -5px; transform: translateX(-50%); border-bottom: 5px solid #1a1a2e; }
+
+@keyframes tip-fade { from { opacity: 0; transform: translate(-50%, -100%) translateY(-4px); } to { opacity: 1; } }
+
+/* cursor: pointer on all interactive elements */
+button, select, [role=button], .tab, .tab-new, .icon-btn, .mode-btn,
+.tp-layer-eye, .tp-layer-rm, .tp-reset-btn, .tp-x, .export-btn,
+.how-built-toggle, .hb-tab, .hb-close, .enh-toggle label,
+.diag-toggle, .compare-exit, .tuning-toggle, .tab-close,
+.ap-play, .ap-scrub { cursor: pointer; }
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 900px) {

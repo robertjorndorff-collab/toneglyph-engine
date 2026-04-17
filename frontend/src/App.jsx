@@ -11,6 +11,7 @@ import { analyzeFile } from './upload/uploadApi'
 import { API_URL, MAX_SIZE, ACCEPTED, fmt, resolvePath as resolvePathFn } from './shared/constants'
 import { BINDINGS } from './glyph/GlyphCanvas'
 import { useEnhancers, getEraFilter } from './enhancers/useEnhancers'
+import Tip from './shared/Tooltip'
 const BINDINGS_REF = BINDINGS
 
 class GlyphErrorBoundary extends Component {
@@ -34,20 +35,22 @@ function useGlobalToast() {
 }
 
 function GlyphModeSelector({ mode, setMode }) {
+  const tips = { static: 'Static — canonical glyph', animated: 'Animated — living artifact', temporal: 'Temporal — evolves with playback' }
   return (
     <div className="mode-selector">
       {[['static','S'],['animated','A'],['temporal','T']].map(([m,l]) => (
-        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button>
+        <Tip key={m} text={tips[m]}><button className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button></Tip>
       ))}
     </div>
   )
 }
 
 function WorkspaceModeSelector({ mode, setMode }) {
+  const tips = { glyph: 'Glyph View', detail: 'Detail View', split: 'Split View' }
   return (
     <div className="mode-selector ws-mode">
       {[['glyph','G'],['detail','D'],['split','S']].map(([m,l]) => (
-        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)} title={m}>{l}</button>
+        <Tip key={m} text={tips[m]} shortcut={l}><button className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button></Tip>
       ))}
     </div>
   )
@@ -61,9 +64,9 @@ function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt }) {
       <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
       <span className="hex-badge">{cas.rgb?.hex}</span>
       <div className="info-bar-right">
-        <button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }} title="Export PNG (E)">⬇</button>
-        <button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }} title="Export JSON">{ '{' }</button>
-        <button className="icon-btn" onClick={() => setShowHowBuilt(true)} title="How Built">?</button>
+        <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
+        <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
+        <Tip text="How This Glyph Was Built"><button className="icon-btn" onClick={() => setShowHowBuilt(true)}>?</button></Tip>
       </div>
     </div>
   )
@@ -226,8 +229,8 @@ function Studio() {
 
       {showUpload ? (
         <div className="upload-view">
-          <p className="subtitle">Chromatic Audio Signature System</p>
-          <h1>ToneGlyph Studio</h1>
+          <img src="/logo.png" alt="ToneGlyph" className="home-logo" />
+          <h1 className="home-title">Studio</h1>
           {health?.status==='unreachable'&&<div className="status error">Backend disconnected — retrying...</div>}
           <div className="dropzone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();handleFile(e.dataTransfer.files[0])}} onClick={()=>document.getElementById('file-input')?.click()}>
             <input id="file-input" type="file" accept={ACCEPTED} onChange={e=>{handleFile(e.target.files[0]);e.target.value=''}} hidden />
@@ -284,7 +287,7 @@ function Studio() {
             )}
           </div>
           <TuningPanel enhancerUI={enhancerUI} />
-          {!tuningOpen && tab?.result && <button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})} title="Tuning Panel (T)">⚙</button>}
+          {tab?.result && <Tip text="Toggle Tuning Panel" shortcut="T"><button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})}>⚙</button></Tip>}
           <div className="ws-mode-float">
             <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
           </div>

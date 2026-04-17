@@ -17,6 +17,8 @@ function loadPersistedState() {
         file: null,
         fileObjectUrl: null,
         uploading: false,
+        layers: (t.layers && t.layers.length > 0) ? t.layers
+          : [{ id: crypto.randomUUID(), modelName: t.modelName || 'Chromatic', opacity: 1, visible: true }],
       })),
     }
   } catch { return null }

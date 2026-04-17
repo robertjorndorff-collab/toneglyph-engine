@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useStudio } from '../studio/StudioContext'
 import { MODELS, BINDINGS } from '../glyph/GlyphCanvas'
 import { fmt, PITCH_NAMES, resolveBindings } from '../shared/constants.js'
-// Enhancer UI is rendered via enhancerUI prop from parent
+import Tip from '../shared/Tooltip'
 
 const SLIDERS = [
   { key: 'color.saturation', label: 'Saturation', min: 0, max: 1, step: 0.01 },
@@ -50,7 +50,7 @@ export default function TuningPanel({ enhancerUI }) {
             <div className="tp-group-head">
               <h4 className="tp-group-label">Layers</h4>
               {layers.length < 5 && (
-                <button className="tp-reset-btn" onClick={() => setAddingLayer(!addingLayer)}>+ Add</button>
+                <Tip text="Add Layer"><button className="tp-reset-btn" onClick={() => setAddingLayer(!addingLayer)}>+ Add</button></Tip>
               )}
             </div>
 
@@ -110,7 +110,7 @@ export default function TuningPanel({ enhancerUI }) {
           <div className="tp-group">
             <div className="tp-group-head">
               <h4 className="tp-group-label">Live Overrides</h4>
-              <button className="tp-reset-btn" onClick={() => dispatch({ type: 'CLEAR_OVERRIDES' })}>Reset</button>
+              <Tip text="Reset All Overrides"><button className="tp-reset-btn" onClick={() => dispatch({ type: 'CLEAR_OVERRIDES' })}>Reset</button></Tip>
             </div>
             {SLIDERS.map(s => {
               const base = typeof rv[s.key] === 'number' ? rv[s.key] : (s.min + s.max) / 2
