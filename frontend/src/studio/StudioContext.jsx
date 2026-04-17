@@ -12,6 +12,7 @@ function loadPersistedState() {
     const s = JSON.parse(raw)
     return {
       ...s,
+      presets: s.presets || [],
       tabs: (s.tabs || []).map(t => ({
         ...t,
         file: null,

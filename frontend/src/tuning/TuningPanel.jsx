@@ -176,7 +176,7 @@ export default function TuningPanel({ enhancerUI }) {
 }
 
 function PresetsList({ dispatch, tabId }) {
-  const { presets } = useStudio()
+  const { presets = [] } = useStudio()
   const [open, setOpen] = useState(false)
   const [renaming, setRenaming] = useState(null)
   const [renameVal, setRenameVal] = useState('')
