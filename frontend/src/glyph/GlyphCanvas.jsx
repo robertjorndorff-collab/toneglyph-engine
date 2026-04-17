@@ -113,15 +113,16 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     if (!canvas || chroma.length !== 12) return
 
     const dpr = Math.min(window.devicePixelRatio, 2)
+    const sizeRef = { w: 0, h: 0 }
     const resize = () => {
       const parent = canvas.parentElement
-      const cssW = parent.clientWidth
-      const cssH = parent.clientHeight || Math.min(cssW, 560)
-      canvas.width = cssW * dpr; canvas.height = cssH * dpr
-      canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px'
-      return { cssW, cssH }
+      sizeRef.w = parent.clientWidth
+      sizeRef.h = parent.clientHeight || Math.min(sizeRef.w, 560)
+      canvas.width = sizeRef.w * dpr; canvas.height = sizeRef.h * dpr
+      canvas.style.width = sizeRef.w + 'px'; canvas.style.height = sizeRef.h + 'px'
     }
-    let { cssW, cssH } = resize()
+    resize()
+    let cssW = sizeRef.w, cssH = sizeRef.h
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
@@ -214,6 +215,10 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     }
 
     function frame() {
+      cssW = sizeRef.w; cssH = sizeRef.h
+      if (offscreen.width !== cssW || offscreen.height !== cssH) {
+        offscreen.width = cssW; offscreen.height = cssH
+      }
       const t = (performance.now() - startTime) / 1000
       const rotation = doRotate ? t * num(rv['motion.spin'], 0.3) * spinFactor : 0
       const pulse = doPulse ? 1 + Math.sin(t * 3) * num(rv['motion.pulse'], 0.2) * pulseFactor : 1
@@ -231,12 +236,11 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     }
 
     const ro = new ResizeObserver(() => {
-      const s = resize()
-      cssW = s.cssW; cssH = s.cssH
+      resize()
+      cssW = sizeRef.w; cssH = sizeRef.h
+      offscreen.width = cssW; offscreen.height = cssH
       if (glyphMode === 'static') {
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        if (isChromatic) renderChromatic(ctx, cssW, cssH, chroma, model, mood, shape, getBeatLum(chroma), opts)
-        else renderBertin(ctx, cssW, cssH, chroma, model, shape, getBeatLum(chroma))
+        renderAllLayers(chroma, getBeatLum(chroma), 0, 1)
       }
     })
     ro.observe(canvas.parentElement)

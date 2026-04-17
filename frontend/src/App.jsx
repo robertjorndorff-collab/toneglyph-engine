@@ -54,17 +54,23 @@ function WorkspaceModeSelector({ mode, setMode }) {
   )
 }
 
-function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt }) {
+function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm }) {
   return (
     <div className="info-bar">
-      <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
-      <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
-      <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
-      <span className="hex-badge">{cas.rgb?.hex}</span>
-      <div className="info-bar-right">
-        <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
-        <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
-        <Tip text="How This Glyph Was Built"><button className="icon-btn" onClick={() => setShowHowBuilt(true)}>?</button></Tip>
+      <div className="info-row-top">
+        <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
+        <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
+        <span className="hex-badge">{cas.rgb?.hex}</span>
+      </div>
+      <div className="info-row-bottom">
+        <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
+        <span className="info-sep" />
+        <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} />
+        <div className="info-bar-right">
+          <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
+          <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
+          <Tip text="How This Glyph Was Built"><button className="icon-btn" onClick={() => setShowHowBuilt(true)}>?</button></Tip>
+        </div>
       </div>
     </div>
   )
@@ -244,31 +250,25 @@ function Studio() {
           <div className="ws-detail-main">
             <div className="ws-detail-top">
               <div className="ws-detail-glyph">{glyphEl}</div>
-              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} />}
+              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />}
               {audioEl}
             </div>
             {tab?.result && <PillarGrid result={tab.result} />}
           </div>
           <TuningPanel enhancerUI={enhancerUI} />
-          <div className="ws-mode-float">
-            <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
-          </div>
         </div>
       ) : wsm === 'split' ? (
         /* ── S MODE: left glyph + right pillar scroll ── */
         <div className="workspace ws-split">
           <div className="ws-split-left">
             <div className="ws-split-glyph">{glyphEl}</div>
-            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} />}
+            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />}
             {audioEl}
           </div>
           <div className="ws-split-right">
             {tab?.result && <FullPillarReadout result={tab.result} />}
           </div>
           {tuningOpen && <TuningPanel enhancerUI={enhancerUI} />}
-          <div className="ws-mode-float">
-            <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
-          </div>
         </div>
       ) : (
         /* ── G MODE: glyph hero (default) ── */
@@ -279,16 +279,13 @@ function Studio() {
             {cas && (
               <>
                 <div className="glyph-hero">{glyphEl}</div>
-                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} />
+                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />
                 {audioEl}
               </>
             )}
           </div>
           <TuningPanel enhancerUI={enhancerUI} />
           {tab?.result && <Tip text="Toggle Tuning Panel" shortcut="T"><button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})}>{tuningOpen ? '▶' : '◀'}</button></Tip>}
-          <div className="ws-mode-float">
-            <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
-          </div>
         </div>
       )}
 
