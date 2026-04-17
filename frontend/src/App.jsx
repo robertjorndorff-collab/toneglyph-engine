@@ -34,11 +34,23 @@ function useGlobalToast() {
   return toast
 }
 
-function GlyphModeSelector({ mode, setMode }) {
+function GlyphModeSelector({ mode, setMode, audioRef, fileObjectUrl }) {
+  function handleClick(m) {
+    if (m === 'temporal') {
+      if (!fileObjectUrl) {
+        alert('Temporal mode needs audio. Re-attach or upload a file.')
+        return
+      }
+      if (audioRef?.current?.paused) {
+        audioRef.current.play().catch(() => {})
+      }
+    }
+    setMode(m)
+  }
   return (
     <div className="mode-selector">
       {[['static','Static'],['animated','Animated'],['temporal','Temporal']].map(([m,l]) => (
-        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button>
+        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => handleClick(m)}>{l}</button>
       ))}
     </div>
   )
@@ -54,14 +66,14 @@ function WorkspaceModeSelector({ mode, setMode }) {
   )
 }
 
-function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm }) {
+function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm, audioRef }) {
   return (
     <div className="info-row">
       <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
       <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
       <span className="hex-badge">{cas.rgb?.hex}</span>
       <span className="info-sep" />
-      <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
+      <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} audioRef={audioRef} fileObjectUrl={tab.fileObjectUrl} />
       <span className="info-sep" />
       <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} />
       <div className="info-bar-right">
@@ -285,7 +297,7 @@ function Studio() {
           <div className="ws-detail-main">
             <div className="ws-detail-header">
               <div className="ws-detail-glyph">{glyphEl}</div>
-              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />}
+              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />}
               {audioEl}
             </div>
             {tab?.result && <PillarGrid result={tab.result} />}
@@ -297,7 +309,7 @@ function Studio() {
         <div className="workspace ws-split">
           <div className="ws-split-left">
             <div className="ws-split-glyph">{glyphEl}</div>
-            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />}
+            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />}
             {audioEl}
           </div>
           <div className="ws-split-right">
@@ -314,7 +326,7 @@ function Studio() {
             {cas && (
               <>
                 <div className="glyph-hero">{glyphEl}</div>
-                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} />
+                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />
                 {audioEl}
               </>
             )}

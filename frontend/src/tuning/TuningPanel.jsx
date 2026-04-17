@@ -77,10 +77,12 @@ export default function TuningPanel({ enhancerUI }) {
                     onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { modelName: e.target.value } })}>
                     {modelNames.map(n => <option key={n} value={n}>{n}</option>)}
                   </select>
-                  <button className="tp-layer-arrow" disabled={idx === 0}
-                    onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx - 1 })}>▲</button>
-                  <button className="tp-layer-arrow" disabled={idx === layers.length - 1}
-                    onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx + 1 })}>▼</button>
+                  {layers.length > 1 && idx > 0 ? (
+                    <button className="tp-layer-arrow" onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx - 1 })}>▲</button>
+                  ) : layers.length > 1 ? <span className="tp-layer-arrow-spacer" /> : null}
+                  {layers.length > 1 && idx < layers.length - 1 ? (
+                    <button className="tp-layer-arrow" onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx + 1 })}>▼</button>
+                  ) : layers.length > 1 ? <span className="tp-layer-arrow-spacer" /> : null}
                   <input className="tp-layer-opacity" type="range" min="0" max="1" step="0.05"
                     value={layer.opacity ?? 1}
                     onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { opacity: parseFloat(e.target.value) } })} />

@@ -146,10 +146,15 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     const tempo = num(rv['beat_sync.tempo'], 120)
     const beatInterval = Math.max(0.05, 60 / tempo)
 
-    const doRotate = primaryModel.animation_strategy?.rotation !== false && glyphMode !== 'static'
-    const doPulse = primaryModel.animation_strategy?.pulse !== false && glyphMode !== 'static'
-    const spinFactor = primaryModel.animation_strategy?.rotation_speed_factor || 0.15
-    const pulseFactor = primaryModel.animation_strategy?.pulse_factor || 0.06
+    const bpm = num(rv['beat_sync.tempo'], 120)
+    const beatPeriod = 60 / Math.max(bpm, 30)
+    const BEATS_PER_ROTATION = 32
+    const rotationSpeed = (2 * Math.PI) / (BEATS_PER_ROTATION * beatPeriod)
+    const isStatic = glyphMode === 'static'
+    const doRotate = primaryModel.animation_strategy?.rotation !== false && !isStatic
+    const doPulse = primaryModel.animation_strategy?.pulse !== false && !isStatic
+    const pulseAmp = num(rv['motion.pulse'], 0.2) * (primaryModel.animation_strategy?.pulse_factor || 0.06)
+    const spinMul = num(rv['motion.spin'], 1.0)
 
     const opts = {
       novelty: num(rv['color.saturation'], 0.5),
@@ -223,18 +228,38 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       ctx.restore()
     }
 
+    let lastFrameTime = performance.now()
+    let smoothPulse = 1, smoothRotation = 0
+
     function frame() {
       cssW = sizeRef.w; cssH = sizeRef.h
       if (offscreen.width !== cssW || offscreen.height !== cssH) {
         offscreen.width = cssW; offscreen.height = cssH
       }
-      const t = (performance.now() - startTime) / 1000
-      const rotation = doRotate ? t * num(rv['motion.spin'], 0.3) * spinFactor : 0
-      const pulse = doPulse ? 1 + Math.sin(t * 3) * num(rv['motion.pulse'], 0.2) * pulseFactor : 1
-      const activeChroma = getActiveChroma(t)
+
+      const now = performance.now()
+      const dt = Math.min(0.1, (now - lastFrameTime) / 1000)
+      lastFrameTime = now
+      const elapsed = (now - startTime) / 1000
+
+      // BPM-locked pulse: fast attack, exponential decay per beat
+      const phaseInBeat = (elapsed % beatPeriod) / beatPeriod
+      const envelope = Math.exp(-phaseInBeat * 4)
+      const targetPulse = doPulse ? 1 + envelope * pulseAmp : 1
+
+      // BPM-locked rotation: one full turn per 32 beats
+      const targetRotation = doRotate ? elapsed * rotationSpeed * spinMul : 0
+
+      // Smooth via exponential lerp (frame-rate independent)
+      const tau = 0.12
+      const alpha = 1 - Math.exp(-dt / tau)
+      smoothPulse += (targetPulse - smoothPulse) * alpha
+      smoothRotation = targetRotation // rotation is continuous, no lerp needed
+
+      const activeChroma = getActiveChroma(elapsed)
       const beatLum = getBeatLum(activeChroma)
-      renderAllLayers(activeChroma, beatLum, rotation, pulse)
-      if (glyphMode === 'static') return
+      renderAllLayers(activeChroma, beatLum, smoothRotation, smoothPulse)
+      if (isStatic) return
       animRef.current = requestAnimationFrame(frame)
     }
 

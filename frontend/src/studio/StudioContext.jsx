@@ -57,6 +57,9 @@ function reducer(state, action) {
         modelName: 'Chromatic',
         layers: [{ id: crypto.randomUUID(), modelName: 'Chromatic', opacity: 1, visible: true }],
         bindingName: 'Default',
+        zoom: 1,
+        panX: 0,
+        panY: 0,
         glyphMode: 'animated',
         overrides: {},
       }
