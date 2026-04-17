@@ -36,6 +36,7 @@ export const BINDINGS = Object.fromEntries(
 export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef, zoom: zoomProp, panX: panXProp, panY: panYProp, onZoomChange }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
+  const staticRenderRef = useRef(null)
   const [tooltip, setTooltip] = useState(null)
   const layersRef = useRef(null)
   const zoomRef = useRef({ zoom: zoomProp || 1, panX: panXProp || 0, panY: panYProp || 0, dragging: false, dragStart: null })
@@ -315,8 +316,10 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       animRef.current = requestAnimationFrame(frame)
     }
 
+    staticRenderRef.current = () => renderAllLayers(chroma, getBeatLum(chroma), 0, 1)
+
     if (glyphMode === 'static') {
-      renderAllLayers(chroma, getBeatLum(chroma), 0, 1)
+      staticRenderRef.current()
     } else {
       animRef.current = requestAnimationFrame(frame)
     }
@@ -340,6 +343,12 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       ro.disconnect()
     }
   }, [result?.cas?.composite_hash, modelName, bindingName, glyphMode, JSON.stringify(overrides)])
+
+  // Static mode: redraw when zoom/pan changes (no rAF loop to pick it up)
+  useEffect(() => {
+    if (glyphMode !== 'static') return
+    if (staticRenderRef.current) staticRenderRef.current()
+  }, [zoomProp, panXProp, panYProp, glyphMode])
 
   if (chroma.length !== 12) return null
 
