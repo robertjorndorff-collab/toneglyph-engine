@@ -315,7 +315,7 @@ function App() {
       {/* The Artifact */}
       {cas && (
         <GlyphErrorBoundary hex={cas.rgb?.hex}>
-          <ToneGlyph cas={cas} />
+          <ToneGlyph result={result} />
         </GlyphErrorBoundary>
       )}
 

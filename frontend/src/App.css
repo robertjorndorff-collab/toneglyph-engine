@@ -68,7 +68,7 @@
   border-radius: 16px;
   overflow: hidden;
 }
-.glyph-canvas canvas { display: block; width: 100% !important; height: auto !important; }
+.glyph-canvas canvas { display: block; }
 
 .export-btn {
   font-family: var(--mono);
