@@ -1,0 +1,23 @@
+{
+  "name": "Chroma Raw",
+  "description": "Pure Pillar 3 chroma_mean drives everything. No mood tinting, no era influence. Raw harmonic data → raw color. Diagnostic binding.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar3.harmonic_complexity",
+    "color.gradient_depth": "pillar3.harmonic_complexity",
+    "shape.complexity": "pillar3.rhythmic_complexity",
+    "shape.symmetry": "pillar3.harmonic_complexity",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar3.rms.mean",
+    "lighting.transmission": "pillar3.zero_crossing_rate.mean",
+    "lighting.rim": "pillar3.harmonic_complexity",
+    "motion.spin": "pillar3.tempo.bpm",
+    "motion.pulse": "pillar3.rhythmic_complexity",
+    "motion.flutter": "pillar3.rhythmic_complexity",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar3.harmonic_complexity"
+  }
+}

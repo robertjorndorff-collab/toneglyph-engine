@@ -1,0 +1,25 @@
+{
+  "name": "Johari First",
+  "description": "Pillar 4 (Johari Window) dominates. Hidden complexity drives depth/layering. Open = bright, Blind = edge-only, Hidden = inner glow, Unknown = shadow.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar4.hidden_complexity_score",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar4.hidden_complexity_score",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "pillar4.hidden_complexity_score",
+    "shape.symmetry": "cas.geometry.shape_symmetry",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar4.hidden_complexity_score",
+    "lighting.transmission": "pillar4.hidden_complexity_score",
+    "lighting.rim": "cas.lighting.rim_light_intensity",
+    "motion.spin": "cas.motion.spin_rate",
+    "motion.pulse": "pillar4.hidden_complexity_score",
+    "motion.flutter": "pillar5.novelty_score",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar4.hidden_complexity_score"
+  }
+}

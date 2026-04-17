@@ -1,0 +1,12 @@
+{
+  "name": "Tufte",
+  "description": "Maximum data density, minimal decoration. Every visual element encodes a specific data point. No glow, no gradients, no atmosphere — pure information. Sparkline aesthetic.",
+  "school": "Edward Tufte — The Visual Display of Quantitative Information (1983)",
+  "renderer": "tufte",
+  "references": ["The Visual Display of Quantitative Information (1983)", "Envisioning Information (1990)"],
+  "principles": ["no_chartjunk", "determinism", "multi_scale_legibility"],
+  "shape_strategy": { "type": "sparkline_radial", "base_radius": 0.40, "vertex_count": 360 },
+  "color_strategy": { "type": "minimal", "sectors": 12, "chromatic_circle": false, "mood_tinting": false, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "sector_luminance": true },
+  "lighting_strategy": { "glow_backdrop": false, "rim_outline": true, "center_bloom": false }
+}

@@ -1,0 +1,12 @@
+{
+  "name": "Albers",
+  "description": "Nested concentric forms — each ring is a different pillar's contribution. Color interaction between adjacent layers is the point. Interaction of Color made literal.",
+  "school": "Josef Albers — Bauhaus, Yale School of Art, color theory",
+  "renderer": "albers",
+  "references": ["Homage to the Square series (1950-1976)", "Interaction of Color (1963)"],
+  "principles": ["color_interaction", "complexity_encoding", "determinism"],
+  "shape_strategy": { "type": "concentric", "base_radius": 0.42 },
+  "color_strategy": { "type": "layered", "sectors": 12, "chromatic_circle": true, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.02, "beat_sync": true },
+  "lighting_strategy": { "glow_backdrop": true, "glow_radius_factor": 1.2, "rim_outline": false, "center_bloom": false }
+}

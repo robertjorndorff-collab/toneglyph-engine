@@ -1,0 +1,12 @@
+{
+  "name": "Rothko",
+  "description": "Large soft color fields with fuzzy boundaries. Emotion through color weight and scale. Quiet, contemplative, immersive.",
+  "school": "Mark Rothko — color field painting, abstract expressionism",
+  "renderer": "rothko",
+  "references": ["No. 61 (Rust and Blue) (1953)", "Orange, Red, Yellow (1961)"],
+  "principles": ["color_interaction", "determinism", "multi_scale_legibility"],
+  "shape_strategy": { "type": "field", "base_radius": 0.42 },
+  "color_strategy": { "type": "color_field", "sectors": 3, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": true, "pulse_factor": 0.02, "beat_sync": true },
+  "lighting_strategy": { "glow_backdrop": true, "glow_radius_factor": 1.4, "rim_outline": false, "center_bloom": false }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "Novelty First",
+  "description": "Pillar 5 (IP Novelty) drives saturation and scale dramatically. High novelty = large, vibrant, complex. Low = small, muted, simple.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar5.novelty_score",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar5.novelty_score",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "pillar5.novelty_score",
+    "shape.symmetry": "pillar5.novelty_score",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar5.novelty_score",
+    "lighting.transmission": "cas.lighting.transmission",
+    "lighting.rim": "pillar5.novelty_score",
+    "motion.spin": "cas.motion.spin_rate",
+    "motion.pulse": "pillar5.novelty_score",
+    "motion.flutter": "pillar5.novelty_score",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar5.novelty_score"
+  }
+}

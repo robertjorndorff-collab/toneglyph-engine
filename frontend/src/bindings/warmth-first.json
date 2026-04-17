@@ -1,0 +1,25 @@
+{
+  "name": "Warmth First",
+  "description": "Pillar 2 (Artistic DNA) dominates. Influence vector aggressively sets palette warmth/coolness. Genre/era tinting is heavy.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar2.dna_score",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar2.dna_score",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "pillar2.dna_score",
+    "shape.symmetry": "pillar3.harmonic_complexity",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar2.dna_score",
+    "lighting.transmission": "cas.lighting.transmission",
+    "lighting.rim": "cas.lighting.rim_light_intensity",
+    "motion.spin": "cas.motion.spin_rate",
+    "motion.pulse": "cas.motion.pulse_amplitude",
+    "motion.flutter": "pillar5.novelty_score",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar2.dna_score"
+  }
+}

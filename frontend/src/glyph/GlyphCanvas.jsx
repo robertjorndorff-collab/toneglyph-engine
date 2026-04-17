@@ -1,6 +1,16 @@
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { PITCH_NAMES, PITCH_HUES, num, arr, resolveBindings } from '../shared/constants.js'
-import { renderChromatic, renderBertin, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
+import { renderChromatic, renderBertin, renderRothko, renderKlee, renderMondrian, renderAlbers, renderTufte, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
+
+const RENDERERS = {
+  chromatic: renderChromatic,
+  bertin: renderBertin,
+  rothko: renderRothko,
+  klee: renderKlee,
+  mondrian: renderMondrian,
+  albers: renderAlbers,
+  tufte: renderTufte,
+}
 
 const modelFiles = import.meta.glob('../models/*.json', { eager: true })
 const bindingFiles = import.meta.glob('../bindings/*.json', { eager: true })
@@ -104,7 +114,7 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
     const tempo = num(rv['beat_sync.tempo'], 120)
     const beatInterval = Math.max(0.05, 60 / tempo)
 
-    const isChromatic = model.color_strategy?.type !== 'single_hue_value'
+    const renderFn = RENDERERS[model.renderer] || renderChromatic
     const doRotate = model.animation_strategy?.rotation !== false && glyphMode !== 'static'
     const doPulse = model.animation_strategy?.pulse !== false && glyphMode !== 'static'
     const spinFactor = model.animation_strategy?.rotation_speed_factor || 0.15
@@ -160,8 +170,7 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
       ctx.scale(pulse, pulse)
       ctx.translate(-cssW / 2, -cssH / 2)
 
-      if (isChromatic) renderChromatic(ctx, cssW, cssH, activeChroma, model, mood, shape, beatLum, opts)
-      else renderBertin(ctx, cssW, cssH, activeChroma, model, shape, beatLum)
+      renderFn(ctx, cssW, cssH, activeChroma, model, mood, shape, beatLum, opts)
 
       ctx.restore()
 

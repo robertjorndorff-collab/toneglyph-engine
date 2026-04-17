@@ -1,0 +1,25 @@
+{
+  "name": "Mood First",
+  "description": "Pillar 1 (Zeitgeist) dominates everything. Era/genre sets the entire color palette, shape language, and animation character.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar1.zeitgeist_score",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar1.zeitgeist_score",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "pillar1.zeitgeist_score",
+    "shape.symmetry": "pillar1.zeitgeist_score",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar1.zeitgeist_score",
+    "lighting.transmission": "cas.lighting.transmission",
+    "lighting.rim": "pillar1.zeitgeist_score",
+    "motion.spin": "cas.motion.spin_rate",
+    "motion.pulse": "pillar1.zeitgeist_score",
+    "motion.flutter": "pillar5.novelty_score",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar1.zeitgeist_score"
+  }
+}

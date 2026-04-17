@@ -1,0 +1,12 @@
+{
+  "name": "Klee",
+  "description": "Playful, detailed, musical notation-inspired. Small geometric elements arranged in organic grid patterns. Klee was a violinist — this feels like a musical score reimagined as visual art.",
+  "school": "Paul Klee — Bauhaus, musical abstraction",
+  "renderer": "klee",
+  "references": ["Ancient Sound, Abstract on Black (1925)", "Highway and Byways (1929)", "Polyphony (1932)"],
+  "principles": ["complexity_encoding", "determinism", "genre_legibility"],
+  "shape_strategy": { "type": "grid_organic", "base_radius": 0.40 },
+  "color_strategy": { "type": "multi_sector", "sectors": 12, "chromatic_circle": true, "mood_tinting": true, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "sector_luminance": true },
+  "lighting_strategy": { "glow_backdrop": false, "rim_outline": false, "center_bloom": false }
+}

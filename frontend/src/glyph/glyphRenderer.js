@@ -312,6 +312,297 @@ export function renderBertin(ctx, w, h, chroma, model, mood, shape, beatLum) {
   ctx.restore()
 }
 
+// ── Rothko: soft color fields ────────────────────────────────────────
+
+export function renderRothko(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const emissive = num(opts.emissive, 0.3)
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 25 + novelty * 40
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  // Find top 3 chroma bins
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a]).slice(0, 3)
+  const pad = w * 0.08
+  const blockH = (h - pad * 4) / 3
+  const blockW = w - pad * 2
+
+  for (let i = 0; i < 3; i++) {
+    const idx = ranked[i]
+    const energy = chroma[idx] / maxC
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 20 + energy * 30 + mood.lightMod * 20
+    const beatB = (beatLum?.[idx] ?? 0.5) * 8
+    const y = pad * (i + 1) + blockH * i
+    const edgeBlur = 20 + (1 - energy) * 30
+
+    // Soft rectangular block with feathered edges
+    const grad = ctx.createLinearGradient(pad, y, pad, y + blockH)
+    grad.addColorStop(0, hsl(baseH, sat, light + beatB + 5, 0.15))
+    grad.addColorStop(0.15, hsl(baseH, sat, light + beatB, 0.7 * energy))
+    grad.addColorStop(0.5, hsl(baseH, sat, light + beatB, 0.8 * energy))
+    grad.addColorStop(0.85, hsl(baseH, sat, light + beatB, 0.7 * energy))
+    grad.addColorStop(1, hsl(baseH, sat, light + beatB + 5, 0.15))
+
+    ctx.fillStyle = grad
+    roundRect(ctx, pad, y, blockW, blockH, edgeBlur * 0.5)
+    ctx.fill()
+
+    // Side feathering
+    const sideGrad = ctx.createLinearGradient(pad, y, pad + blockW, y)
+    sideGrad.addColorStop(0, hsl(baseH, sat, light, 0))
+    sideGrad.addColorStop(0.05, hsl(baseH, sat, light, 0.3))
+    sideGrad.addColorStop(0.95, hsl(baseH, sat, light, 0.3))
+    sideGrad.addColorStop(1, hsl(baseH, sat, light, 0))
+    ctx.fillStyle = sideGrad
+    roundRect(ctx, pad, y, blockW, blockH, edgeBlur * 0.5)
+    ctx.fill()
+  }
+
+  // Atmospheric glow
+  const glowH = (PITCH_HUES[ranked[0]] + mood.warmth * 40 + 360) % 360
+  const gg = ctx.createRadialGradient(w / 2, h / 2, 0, w / 2, h / 2, Math.max(w, h) * 0.6)
+  gg.addColorStop(0, hsl(glowH, 30, 25, emissive * 0.15))
+  gg.addColorStop(1, 'hsla(0,0%,0%,0)')
+  ctx.fillStyle = gg
+  ctx.fillRect(0, 0, w, h)
+}
+
+function roundRect(ctx, x, y, w, h, r) {
+  r = Math.min(r, w / 2, h / 2)
+  ctx.beginPath()
+  ctx.moveTo(x + r, y)
+  ctx.lineTo(x + w - r, y); ctx.arcTo(x + w, y, x + w, y + r, r)
+  ctx.lineTo(x + w, y + h - r); ctx.arcTo(x + w, y + h, x + w - r, y + h, r)
+  ctx.lineTo(x + r, y + h); ctx.arcTo(x, y + h, x, y + h - r, r)
+  ctx.lineTo(x, y + r); ctx.arcTo(x, y, x + r, y, r)
+  ctx.closePath()
+}
+
+// ── Klee: musical notation grid ──────────────────────────────────────
+
+export function renderKlee(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const novelty = num(opts.novelty, 0.5)
+  const baseSat = 35 + novelty * 45
+  const cols = 12, rows = 8
+  const cellW = (w - 40) / cols, cellH = (h - 40) / rows
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const cx = 20 + c * cellW + cellW / 2
+      const cy = 20 + r * cellH + cellH / 2
+      const pitchIdx = c
+      const energy = chroma[pitchIdx] / maxC
+      const rowFactor = 1 - Math.abs(r - rows / 2) / (rows / 2)
+      const intensity = energy * rowFactor
+      if (intensity < 0.1) continue
+
+      const baseH = (PITCH_HUES[pitchIdx] + mood.warmth * 40 + 360) % 360
+      const sat = Math.min(100, baseSat * mood.satMod)
+      const light = 25 + intensity * 40 + mood.lightMod * 15
+      const beatB = (beatLum?.[pitchIdx] ?? 0.5) * 10
+      const alpha = 0.3 + intensity * 0.6
+
+      // Varied element types based on position
+      const elType = (r + c) % 4
+      ctx.fillStyle = hsl(baseH, sat, light + beatB, alpha)
+      ctx.strokeStyle = hsl(baseH, sat, light + 15, alpha * 0.7)
+      ctx.lineWidth = 1
+
+      if (elType === 0) {
+        // Circle
+        const rad = 2 + intensity * Math.min(cellW, cellH) * 0.35
+        ctx.beginPath(); ctx.arc(cx, cy, rad, 0, Math.PI * 2); ctx.fill()
+      } else if (elType === 1) {
+        // Small rectangle
+        const sz = 3 + intensity * Math.min(cellW, cellH) * 0.4
+        ctx.fillRect(cx - sz / 2, cy - sz / 3, sz, sz * 0.6)
+      } else if (elType === 2) {
+        // Horizontal dash
+        const dashW = 4 + intensity * cellW * 0.6
+        ctx.beginPath(); ctx.moveTo(cx - dashW / 2, cy); ctx.lineTo(cx + dashW / 2, cy)
+        ctx.lineWidth = 1 + intensity * 2; ctx.stroke()
+      } else {
+        // Triangle / diamond
+        const sz = 3 + intensity * Math.min(cellW, cellH) * 0.3
+        ctx.beginPath(); ctx.moveTo(cx, cy - sz); ctx.lineTo(cx + sz, cy); ctx.lineTo(cx, cy + sz); ctx.lineTo(cx - sz, cy); ctx.closePath(); ctx.fill()
+      }
+    }
+  }
+}
+
+// ── Mondrian: primary colors + grid ──────────────────────────────────
+
+export function renderMondrian(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const maxC = Math.max(...chroma, 0.001)
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])
+  const primaries = [
+    { h: 5, s: 80, l: 50 },   // red
+    { h: 220, s: 75, l: 45 },  // blue
+    { h: 50, s: 85, l: 55 },   // yellow
+  ]
+  const gridLine = 3
+  const pad = 12
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  // Generate grid divisions from chroma data
+  const xSplits = [0, pad]
+  const ySplits = [0, pad]
+  const nSplits = 4
+  for (let i = 1; i < nSplits; i++) {
+    const energy = chroma[ranked[i]] / maxC
+    xSplits.push(pad + (w - pad * 2) * (i / nSplits) + (energy - 0.5) * 40)
+    ySplits.push(pad + (h - pad * 2) * (i / nSplits) + (energy - 0.5) * 30)
+  }
+  xSplits.push(w - pad); ySplits.push(h - pad)
+  xSplits.sort((a, b) => a - b); ySplits.sort((a, b) => a - b)
+
+  // Fill rectangles
+  let cellIdx = 0
+  for (let r = 0; r < ySplits.length - 1; r++) {
+    for (let c = 0; c < xSplits.length - 1; c++) {
+      const x = xSplits[c], y = ySplits[r]
+      const rw = xSplits[c + 1] - x, rh = ySplits[r + 1] - y
+      if (rw < 4 || rh < 4) continue
+
+      const pitchIdx = ranked[cellIdx % 12]
+      const energy = chroma[pitchIdx] / maxC
+      const beatB = (beatLum?.[pitchIdx] ?? 0.5) * 8
+
+      if (energy > 0.5) {
+        const prim = primaries[cellIdx % 3]
+        ctx.fillStyle = hsl(prim.h, prim.s, prim.l + beatB, 0.7 + energy * 0.3)
+        ctx.fillRect(x + gridLine, y + gridLine, rw - gridLine * 2, rh - gridLine * 2)
+      }
+      cellIdx++
+    }
+  }
+
+  // Black grid lines
+  ctx.strokeStyle = '#e0e0e0'
+  ctx.lineWidth = gridLine
+  for (const x of xSplits) { ctx.beginPath(); ctx.moveTo(x, pad); ctx.lineTo(x, h - pad); ctx.stroke() }
+  for (const y of ySplits) { ctx.beginPath(); ctx.moveTo(pad, y); ctx.lineTo(w - pad, y); ctx.stroke() }
+}
+
+// ── Albers: nested concentric forms ──────────────────────────────────
+
+export function renderAlbers(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
+  const cx = w / 2, cy = h / 2
+  const R = Math.min(w, h) * 0.42
+  const maxC = Math.max(...chroma, 0.001)
+  const novelty = num(opts.novelty, 0.5)
+  const depth = num(opts.depth, 0.5)
+  const baseSat = 30 + novelty * 50
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.save()
+  ctx.translate(cx, cy)
+
+  // Sort bins by energy — outermost ring = weakest, inner = strongest
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[a] - chroma[b])
+  const nRings = Math.min(7, Math.round(3 + depth * 4))
+
+  for (let ring = 0; ring < nRings; ring++) {
+    const idx = ranked[12 - 1 - ring] || ranked[0]
+    const energy = chroma[idx] / maxC
+    const t = (ring + 1) / (nRings + 1)
+    const ringR = R * (1 - t * 0.85)
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + 360) % 360
+    const sat = Math.min(100, baseSat * mood.satMod)
+    const light = 20 + energy * 35 + mood.lightMod * 15
+    const beatB = (beatLum?.[idx] ?? 0.5) * 8
+    const alpha = 0.5 + energy * 0.4
+
+    // Use squares for even rings, circles for odd (Albers alternation)
+    if (ring % 2 === 0) {
+      ctx.fillStyle = hsl(baseH, sat, light + beatB, alpha)
+      ctx.fillRect(-ringR, -ringR, ringR * 2, ringR * 2)
+    } else {
+      ctx.beginPath(); ctx.arc(0, 0, ringR, 0, Math.PI * 2)
+      ctx.fillStyle = hsl(baseH, sat, light + beatB, alpha)
+      ctx.fill()
+    }
+  }
+
+  ctx.restore()
+}
+
+// ── Tufte: sparkline radial, pure data ───────────────────────────────
+
+export function renderTufte(ctx, w, h, chroma, model, mood, shape, beatLum) {
+  const cx = w / 2, cy = h / 2
+  const R = Math.min(w, h) * 0.40
+  const maxC = Math.max(...chroma, 0.001)
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.save()
+  ctx.translate(cx, cy)
+
+  const textColor = 'rgba(255,255,255,0.3)'
+
+  // Data polygon — the only decoration allowed
+  ctx.beginPath()
+  for (let i = 0; i <= 12; i++) {
+    const idx = i % 12
+    const energy = chroma[idx] / maxC
+    const angle = (idx / 12) * Math.PI * 2 - Math.PI / 2
+    const dist = R * (0.05 + energy * 0.95)
+    const px = Math.cos(angle) * dist, py = Math.sin(angle) * dist
+    i === 0 ? ctx.moveTo(px, py) : ctx.lineTo(px, py)
+  }
+  ctx.closePath()
+  ctx.fillStyle = 'rgba(192,132,252,0.06)'
+  ctx.fill()
+  ctx.strokeStyle = 'rgba(192,132,252,0.4)'
+  ctx.lineWidth = 1.5
+  ctx.stroke()
+
+  // Data points — size encodes value (Bertin: size variable)
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2
+    const dist = R * (0.05 + energy * 0.95)
+    const px = Math.cos(angle) * dist, py = Math.sin(angle) * dist
+    const dotR = 1.5 + energy * 4
+    const beatB = (beatLum?.[i] ?? 0.5) * 10
+
+    ctx.beginPath(); ctx.arc(px, py, dotR, 0, Math.PI * 2)
+    ctx.fillStyle = `rgba(192,132,252,${0.4 + energy * 0.5 + beatB * 0.02})`
+    ctx.fill()
+  }
+
+  // Minimal axis ticks
+  ctx.strokeStyle = textColor
+  ctx.lineWidth = 0.5
+  for (let i = 0; i < 12; i++) {
+    const angle = (i / 12) * Math.PI * 2 - Math.PI / 2
+    const x1 = Math.cos(angle) * (R + 4), y1 = Math.sin(angle) * (R + 4)
+    const x2 = Math.cos(angle) * (R + 10), y2 = Math.sin(angle) * (R + 10)
+    ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
 export function getSectorAtPoint(mx, my, cx, cy, maxR) {
   const dx = mx - cx, dy = my - cy
   const dist = Math.sqrt(dx * dx + dy * dy)

@@ -2,6 +2,9 @@
   "name": "Bertin",
   "description": "Data-forward analytical visualization. Maps pillar outputs to Bertin's 7 visual variables (position, size, shape, value, color, orientation, texture). Restrained palette, high data-ink ratio.",
   "school": "Jacques Bertin — Semiology of Graphics (1967), Edward Tufte — data-ink maximization",
+  "renderer": "bertin",
+  "references": ["Semiology of Graphics (Bertin, 1967)", "The Visual Display of Quantitative Information (Tufte, 1983)"],
+  "principles": ["no_chartjunk", "determinism", "multi_scale_legibility"],
   "shape_strategy": {
     "type": "geometric_radial",
     "base_radius": 0.38,

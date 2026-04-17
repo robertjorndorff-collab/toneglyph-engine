@@ -1,0 +1,12 @@
+{
+  "name": "Mondrian",
+  "description": "Primary colors, black grid lines, stark rectangular composition. Bold, structured, zero ambiguity. Pillar data maps to rectangle sizes and color fills.",
+  "school": "Piet Mondrian — De Stijl, neoplasticism",
+  "renderer": "mondrian",
+  "references": ["Composition with Red Blue and Yellow (1930)", "Broadway Boogie Woogie (1942-43)"],
+  "principles": ["no_chartjunk", "determinism", "multi_scale_legibility"],
+  "shape_strategy": { "type": "rectangular", "base_radius": 0.42 },
+  "color_strategy": { "type": "primary", "sectors": 12, "chromatic_circle": false, "mood_tinting": false, "blend_mode": "source-over" },
+  "animation_strategy": { "rotation": false, "pulse": false, "beat_sync": true, "sector_luminance": true },
+  "lighting_strategy": { "glow_backdrop": false, "rim_outline": false, "center_bloom": false }
+}

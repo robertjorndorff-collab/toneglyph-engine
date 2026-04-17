@@ -1,0 +1,25 @@
+{
+  "name": "Rhythm First",
+  "description": "Pillar 3 (Music Theory) dominates. Tempo drives rotation, beat count drives element count, rhythmic complexity drives angular vs curved.",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar3.harmonic_complexity",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar3.rhythmic_complexity",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "pillar3.rhythmic_complexity",
+    "shape.symmetry": "pillar3.harmonic_complexity",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "pillar3.harmonic_complexity",
+    "lighting.transmission": "pillar3.rhythmic_complexity",
+    "lighting.rim": "cas.lighting.rim_light_intensity",
+    "motion.spin": "pillar3.tempo.bpm",
+    "motion.pulse": "pillar3.beat_confidence.score",
+    "motion.flutter": "pillar3.rhythmic_complexity",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar3.harmonic_complexity"
+  }
+}

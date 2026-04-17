@@ -2,6 +2,9 @@
   "name": "Chromatic",
   "description": "Multi-color sector-based radial glyph with mood-driven palette and gradient depth. The flagship ToneGlyph visualization.",
   "school": "ToneGlyph Custom — informed by Albers (color interaction) and Gestalt (perceptual grouping)",
+  "renderer": "chromatic",
+  "references": ["Interaction of Color (Albers, 1963)", "Gestalt principles of perceptual grouping"],
+  "principles": ["color_interaction", "genre_legibility", "complexity_encoding", "determinism"],
   "shape_strategy": {
     "type": "radial_organic",
     "base_radius": 0.42,
