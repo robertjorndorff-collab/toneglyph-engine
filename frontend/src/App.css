@@ -81,7 +81,7 @@
 
 .info-bar {
   display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
-  padding: 6px 0; width: 100%;
+  padding: 6px 0; width: 100%; z-index: 1;
 }
 .info-row {
   display: flex; align-items: center; gap: 10px;
