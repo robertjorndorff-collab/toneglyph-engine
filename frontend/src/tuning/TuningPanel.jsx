@@ -68,26 +68,22 @@ export default function TuningPanel({ enhancerUI }) {
 
             <div className="tp-layers">
               {layers.map((layer, idx) => (
-                <div key={layer.id} className="tp-layer"
-                  draggable
-                  onDragStart={e => e.dataTransfer.setData('text/plain', String(idx))}
-                  onDragOver={e => e.preventDefault()}
-                  onDrop={e => {
-                    e.preventDefault()
-                    const from = parseInt(e.dataTransfer.getData('text/plain'), 10)
-                    if (!isNaN(from) && from !== idx) dispatch({ type: 'LAYER_REORDER', from, to: idx })
-                  }}
-                >
+                <div key={layer.id} className="tp-layer">
                   <button className={`tp-layer-eye ${layer.visible !== false ? 'on' : ''}`}
                     onClick={() => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { visible: layer.visible === false ? true : false } })}>
                     {layer.visible !== false ? '●' : '○'}
                   </button>
-                  <span className="tp-layer-name">{layer.modelName}</span>
+                  <select className="tp-layer-model" value={layer.modelName}
+                    onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { modelName: e.target.value } })}>
+                    {modelNames.map(n => <option key={n} value={n}>{n}</option>)}
+                  </select>
+                  <button className="tp-layer-arrow" disabled={idx === 0}
+                    onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx - 1 })}>▲</button>
+                  <button className="tp-layer-arrow" disabled={idx === layers.length - 1}
+                    onClick={() => dispatch({ type: 'LAYER_REORDER', from: idx, to: idx + 1 })}>▼</button>
                   <input className="tp-layer-opacity" type="range" min="0" max="1" step="0.05"
                     value={layer.opacity ?? 1}
-                    onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { opacity: parseFloat(e.target.value) } })}
-                    title={`${Math.round((layer.opacity ?? 1) * 100)}%`}
-                  />
+                    onChange={e => dispatch({ type: 'LAYER_UPDATE', layerId: layer.id, patch: { opacity: parseFloat(e.target.value) } })} />
                   <span className="tp-layer-pct">{Math.round((layer.opacity ?? 1) * 100)}</span>
                   {layers.length > 1 && (
                     <button className="tp-layer-rm" onClick={() => dispatch({ type: 'LAYER_REMOVE', layerId: layer.id })}>×</button>
