@@ -335,6 +335,24 @@
 .tp-preset-actions { display: flex; gap: 8px; margin-top: 4px; }
 .tp-preset-actions .ts-icon { width: auto; font-size: 11px; padding: 0 4px; }
 
+/* ── Modal ── */
+.modal-overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,0.55); display: flex; align-items: center; justify-content: center; animation: hb-fade-in 150ms ease; }
+.modal-panel { background: var(--bg); border: 1px solid var(--border); border-radius: 12px; max-height: 80vh; display: flex; flex-direction: column; box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
+.modal-lg { width: 90%; max-width: 640px; }
+.modal-header { display: flex; align-items: center; gap: 8px; padding: 16px 20px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.modal-title { font-family: var(--sans); font-size: 14px; font-weight: 500; color: var(--text-h); flex: 1; }
+.modal-actions { display: flex; gap: 8px; align-items: center; }
+.modal-actions .ts-icon { width: auto; font-size: 12px; padding: 0 6px; }
+.modal-close { background: none; border: none; color: var(--text); cursor: pointer; font-size: 18px; opacity: 0.5; }
+.modal-close:hover { opacity: 1; }
+.modal-body { padding: 12px 20px 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 4px; }
+
+.preset-lib-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 6px; }
+.preset-lib-row:hover { background: rgba(255,255,255,0.03); }
+.preset-lib-info { flex: 1; min-width: 0; }
+.preset-lib-name { display: block; font-family: var(--mono); font-size: 13px; color: var(--text-h); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.preset-lib-meta { display: block; font-family: var(--mono); font-size: 11px; color: var(--text); opacity: 0.5; }
+
 /* ── Enhancer UI ── */
 
 .enhancer-badges { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 10; }

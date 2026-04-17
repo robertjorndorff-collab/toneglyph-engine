@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useStudio } from '../studio/StudioContext'
 import { MODELS, BINDINGS } from '../glyph/GlyphCanvas'
 import { fmt, resolveBindings } from '../shared/constants.js'
@@ -31,6 +31,7 @@ export default function TuningPanel({ enhancerUI }) {
   const [addingLayer, setAddingLayer] = useState(false)
   const [savingPreset, setSavingPreset] = useState(false)
   const [presetName, setPresetName] = useState('')
+  const [showLibrary, setShowLibrary] = useState(false)
 
   const tab = activeTab
   const binding = tab ? (BINDINGS[tab.bindingName] || BINDINGS['Default']) : null
@@ -96,10 +97,15 @@ export default function TuningPanel({ enhancerUI }) {
           </div>
         </TuningSection>
 
-        {/* ── PRESETS ── */}
-        <TuningSection id="presets" label={`PRESETS (${presets.length})`}>
-          <PresetsList dispatch={dispatch} tabId={tab.id} />
-        </TuningSection>
+        {/* ── PRESETS (opens modal) ── */}
+        <div className="ts">
+          <div className="ts-header" onClick={() => setShowLibrary(true)} role="button" tabIndex={0}>
+            <svg width="8" height="8" viewBox="0 0 8 8" className="tp-chevron"><path d="M 2 1 L 6 4 L 2 7" stroke="currentColor" strokeWidth="1.25" fill="none" strokeLinecap="round" strokeLinejoin="round" /></svg>
+            <span className="ts-label">PRESETS ({presets.length})</span>
+          </div>
+        </div>
+
+        {showLibrary && <PresetLibraryModal dispatch={dispatch} tabId={tab.id} presets={presets} onClose={() => setShowLibrary(false)} />}
 
         {/* ── LIVE OVERRIDES ── */}
         <TuningSection id="overrides" label="LIVE OVERRIDES" defaultOpen action={
@@ -142,30 +148,46 @@ export default function TuningPanel({ enhancerUI }) {
   )
 }
 
-function PresetsList({ dispatch, tabId }) {
-  const { presets = [] } = useStudio()
+function PresetLibraryModal({ dispatch, tabId, presets, onClose }) {
   const importRef = useRef(null)
 
-  if (presets.length === 0) return <p className="tp-empty">No presets yet.</p>
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
 
   return (
-    <div className="tp-presets">
-      {presets.map(p => (
-        <div key={p.id} className="tp-preset-row">
-          <span className="tp-preset-name">{p.name}</span>
-          <button className="ts-icon ts-accent" onClick={() => dispatch({ type: 'PRESET_APPLY', presetId: p.id, toTabId: tabId })}>Apply</button>
-          <button className="ts-icon" onClick={() => { const blob = new Blob([JSON.stringify(p, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `preset-${p.name.replace(/\s/g,'-')}.json`; a.click() }}>↓</button>
-          <button className="ts-icon tp-rm" onClick={() => { if (confirm(`Delete "${p.name}"?`)) dispatch({ type: 'PRESET_DELETE', presetId: p.id }) }}>×</button>
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-panel modal-lg" onClick={e => e.stopPropagation()}>
+        <div className="modal-header">
+          <span className="modal-title">Preset Library</span>
+          <div className="modal-actions">
+            <button className="ts-icon" onClick={() => { const blob = new Blob([JSON.stringify(presets, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'toneglyph-presets.json'; a.click() }}>Export All</button>
+            <button className="ts-icon" onClick={() => importRef.current?.click()}>Import</button>
+            <input ref={importRef} type="file" accept=".json" hidden onChange={e => {
+              const f = e.target.files?.[0]; if (!f) return
+              f.text().then(t => { try { let d = JSON.parse(t); if (!Array.isArray(d)) d = [d]; dispatch({ type: 'PRESET_IMPORT', presets: d.filter(p=>p.config?.layers) }) } catch { alert('Invalid JSON') } })
+              e.target.value = ''
+            }} />
+            <button className="modal-close" onClick={onClose}>×</button>
+          </div>
         </div>
-      ))}
-      <div className="tp-preset-actions">
-        <button className="ts-icon" onClick={() => { const blob = new Blob([JSON.stringify(presets, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'toneglyph-presets.json'; a.click() }}>Export All</button>
-        <button className="ts-icon" onClick={() => importRef.current?.click()}>Import</button>
-        <input ref={importRef} type="file" accept=".json" hidden onChange={e => {
-          const f = e.target.files?.[0]; if (!f) return
-          f.text().then(t => { try { let d = JSON.parse(t); if (!Array.isArray(d)) d = [d]; dispatch({ type: 'PRESET_IMPORT', presets: d.filter(p=>p.config?.layers) }) } catch { alert('Invalid JSON') } })
-          e.target.value = ''
-        }} />
+        <div className="modal-body">
+          {presets.length === 0 ? (
+            <p className="tp-empty">No presets saved yet. Tune a glyph you love, then click the save icon in the Layers header.</p>
+          ) : presets.map(p => (
+            <div key={p.id} className="preset-lib-row">
+              <div className="preset-lib-info">
+                <span className="preset-lib-name">{p.name}</span>
+                <span className="preset-lib-meta">{p.config?.layers?.length || 0} layers · {p.config?.bindingName} · {p.origin_song?.filename?.replace(/\.[^.]+$/, '') || '?'}</span>
+              </div>
+              <button className="ts-icon ts-accent" onClick={() => { dispatch({ type: 'PRESET_APPLY', presetId: p.id, toTabId: tabId }); onClose() }}>Apply</button>
+              <button className="ts-icon" onClick={() => { const blob = new Blob([JSON.stringify(p, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `preset-${p.name.replace(/\s/g,'-')}.json`; a.click() }}>↓</button>
+              <button className="ts-icon tp-rm" onClick={() => { if (confirm(`Delete "${p.name}"?`)) dispatch({ type: 'PRESET_DELETE', presetId: p.id }) }}>×</button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   )
