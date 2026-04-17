@@ -53,27 +53,40 @@
 .drop-label { color: var(--text-h); font-size: 1rem; font-weight: 500; margin-bottom: 6px; }
 .drop-hint { color: var(--text); font-size: 0.75rem; }
 
-/* ── Glyph area — flex: 1, vertically centered ───────────────────── */
+/* ── Glyph hero — fills the space, IS the viewport ───────────────── */
 
-.glyph-area { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 0; position: relative; }
+.glyph-hero {
+  flex: 1; display: flex; align-items: center; justify-content: center;
+  min-height: 0; width: 100%; position: relative;
+}
 
-.glyph-wrap { display: flex; flex-direction: column; align-items: center; gap: 8px; max-height: 100%; }
-.glyph-canvas { border-radius: 10px; overflow: hidden; }
-.glyph-canvas canvas { display: block; max-height: 50vh; }
+.glyph-wrap { display: flex; flex-direction: column; align-items: center; gap: 0; width: 100%; height: 100%; }
+.glyph-canvas { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; }
+.glyph-canvas canvas { display: block; width: 100%; height: 100%; }
 
 .glyph-tooltip { position: absolute; background: rgba(8,12,24,0.92); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; font-family: var(--mono); font-size: 0.625rem; color: var(--text-h); white-space: nowrap; pointer-events: none; z-index: 50; }
 
-.glyph-fallback { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 32px 0; }
+.glyph-fallback { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
 .fallback-swatch { width: 80px; height: 80px; border-radius: 50%; }
 .fallback-msg { font-family: var(--mono); font-size: 0.6875rem; color: var(--text); text-transform: uppercase; letter-spacing: 1px; }
 
-/* ── Song info strip — compact, one line ─────────────────────────── */
+/* ── Info bar — compact single line below glyph ──────────────────── */
 
-.song-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; justify-content: center; flex-shrink: 0; padding: 4px 0; }
-.song-title { font-size: 0.875rem; font-weight: 600; color: var(--text-h); }
-.pantone-badge { font-family: var(--mono); font-size: 0.5625rem; padding: 2px 7px; border-radius: 3px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
-.hex-badge { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); }
-.hash-small { font-family: var(--mono); font-size: 0.5rem; color: var(--text); opacity: 0.5; }
+.info-bar {
+  display: flex; align-items: center; gap: 10px; flex-shrink: 0;
+  padding: 6px 0; width: 100%; min-height: 32px;
+}
+.song-title { font-size: 0.8125rem; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pantone-badge { font-family: var(--mono); font-size: 0.5625rem; padding: 2px 7px; border-radius: 3px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); flex-shrink: 0; }
+.hex-badge { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); flex-shrink: 0; }
+.info-bar-right { margin-left: auto; display: flex; gap: 4px; flex-shrink: 0; }
+.icon-btn {
+  width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border);
+  background: transparent; color: var(--text); cursor: pointer;
+  font-size: 0.75rem; display: flex; align-items: center; justify-content: center;
+  transition: border-color 0.15s, color 0.15s;
+}
+.icon-btn:hover { border-color: var(--accent); color: var(--accent); }
 
 /* ── Audio Player — fixed strip ──────────────────────────────────── */
 
@@ -99,12 +112,51 @@
 .mode-btn.active { background: var(--accent); color: #fff; }
 .mode-btn:hover:not(.active) { color: var(--text-h); }
 
-/* ── Bottom strip — "How Built" collapsible ──────────────────────── */
+/* ── How Built overlay ────────────────────────────────────────────── */
 
-.how-built-strip { flex-shrink: 0; border-top: 1px solid var(--border); }
-.how-built-toggle { width: 100%; background: none; border: none; padding: 5px 12px; color: var(--text); font-family: var(--mono); font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; text-align: left; }
-.how-built-toggle:hover { color: var(--accent); }
-.how-built-body { padding: 8px 12px; font-family: var(--mono); font-size: 0.5625rem; color: var(--text); line-height: 1.5; max-height: 120px; overflow-y: auto; }
+.hb-overlay {
+  position: fixed; inset: 0; z-index: 200;
+  background: rgba(0, 0, 0, 0.6); backdrop-filter: blur(4px);
+  display: flex; align-items: flex-end; justify-content: center;
+  animation: hb-fade-in 150ms ease;
+}
+@keyframes hb-fade-in { from { opacity: 0; } to { opacity: 1; } }
+
+.hb-panel {
+  width: 100%; max-width: 800px; max-height: 60vh;
+  background: #0d1120; border: 1px solid var(--border);
+  border-radius: 12px 12px 0 0; padding: 20px 24px 16px;
+  display: flex; flex-direction: column;
+  animation: hb-slide-up 200ms ease;
+}
+@keyframes hb-slide-up { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+.hb-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+.hb-title { font-family: var(--sans); font-size: 0.875rem; font-weight: 600; color: var(--text-h); }
+.hb-meta { font-family: var(--mono); font-size: 0.6875rem; color: var(--text); opacity: 0.6; flex: 1; }
+.hb-close { background: none; border: none; color: var(--text); cursor: pointer; font-size: 1.125rem; opacity: 0.5; }
+.hb-close:hover { opacity: 1; }
+
+.hb-tabs { display: flex; gap: 2px; margin-bottom: 12px; flex-shrink: 0; }
+.hb-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--mono); font-size: 0.6875rem; color: var(--text);
+  padding: 5px 12px; border-radius: 4px; transition: all 0.15s;
+}
+.hb-tab.active { background: rgba(192, 132, 252, 0.12); color: var(--accent); }
+.hb-tab:hover:not(.active) { color: var(--text-h); }
+
+.hb-table-wrap { overflow-y: auto; flex: 1; }
+.hb-table { width: 100%; border-collapse: collapse; }
+.hb-table th {
+  text-align: left; font-family: var(--mono); font-size: 0.625rem;
+  text-transform: uppercase; letter-spacing: 0.5px; color: var(--text);
+  padding: 4px 8px 8px 0; border-bottom: 1px solid var(--border);
+}
+.hb-table td { padding: 6px 8px 6px 0; border-bottom: 1px solid rgba(30,35,51,0.4); }
+.hb-prop { font-family: var(--mono); font-size: 0.75rem; color: var(--text-h); }
+.hb-src { font-family: var(--mono); font-size: 0.6875rem; color: var(--text); opacity: 0.6; }
+.hb-val { font-family: var(--mono); font-size: 0.75rem; color: var(--accent-secondary); }
 
 /* ── Tuning Panel — Apple-quality right sidebar ──────────────────── */
 
@@ -330,16 +382,7 @@
 .diff-label { flex: 1; text-align: center; color: var(--text); }
 .diff-label.diff-hi { color: var(--accent); }
 
-/* ── Diagnostics ─────────────────────────────────────────────────── */
-
-.diagnostics { width: 100%; }
-.diag-toggle { width: 100%; padding: 6px 8px; background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--text); font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; cursor: pointer; text-align: center; }
-.diag-toggle:hover { border-color: var(--accent); color: var(--accent); }
-.diag-body { margin-top: 4px; padding: 8px; border: 1px solid var(--border); border-radius: 4px; max-height: 150px; overflow-y: auto; }
-.diag-meta { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); margin-bottom: 4px; }
-.diag-meta strong { color: var(--accent); }
-.diag-table { width: 100%; border-collapse: collapse; }
-.diag-table th { text-align: left; font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text); padding: 2px 3px 4px 0; border-bottom: 1px solid var(--border); }
+/* (diagnostics moved to hb-overlay) */
 .diag-table td { padding: 2px 3px; color: var(--text-h); font-family: var(--mono); font-size: 0.5rem; border-bottom: 1px solid rgba(30,35,51,0.4); word-break: break-word; }
 
 /* ── Spinner & Toast ─────────────────────────────────────────────── */

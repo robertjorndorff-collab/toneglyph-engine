@@ -82,8 +82,9 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
 
     const dpr = Math.min(window.devicePixelRatio, 2)
     const resize = () => {
-      const cssW = canvas.parentElement.clientWidth
-      const cssH = Math.min(cssW, 560)
+      const parent = canvas.parentElement
+      const cssW = parent.clientWidth
+      const cssH = parent.clientHeight || Math.min(cssW, 560)
       canvas.width = cssW * dpr; canvas.height = cssH * dpr
       canvas.style.width = cssW + 'px'; canvas.style.height = cssH + 'px'
       return { cssW, cssH }
@@ -198,10 +199,6 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
       <div className="glyph-canvas" style={{ position: 'relative' }}>
         <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)} />
         {tooltip && <div className="glyph-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>{tooltip.text}</div>}
-      </div>
-      <div className="export-bar">
-        <button className="export-btn" onClick={exportPng}>PNG</button>
-        <button className="export-btn" onClick={exportJson}>CAS JSON</button>
       </div>
     </div>
   )

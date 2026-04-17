@@ -5,9 +5,11 @@ import TabBar from './studio/TabBar'
 import GlyphCanvas from './glyph/GlyphCanvas'
 import AudioPlayer from './audio/AudioPlayer'
 import TuningPanel from './tuning/TuningPanel'
-import { GlyphDiagnostics, FullPillarReadout } from './panels/PillarReadout'
+import { FullPillarReadout } from './panels/PillarReadout'
 import { analyzeFile } from './upload/uploadApi'
-import { API_URL, MAX_SIZE, ACCEPTED, fmt } from './shared/constants'
+import { API_URL, MAX_SIZE, ACCEPTED, fmt, resolvePath as resolvePathFn } from './shared/constants'
+import { BINDINGS } from './glyph/GlyphCanvas'
+const BINDINGS_REF = BINDINGS
 
 class GlyphErrorBoundary extends Component {
   state = { error: null }
@@ -105,19 +107,69 @@ function AnalysisSpinner() {
   return <div className="spinner-wrap"><div className="spinner" /><p className="spinner-text">Analyzing… {elapsed}s</p></div>
 }
 
-function HowBuiltStrip({ result, bindingName }) {
-  const [open, setOpen] = useState(false)
-  if (!result) return null
+function HowBuiltOverlay({ result, bindingName, onClose }) {
+  const binding = result && bindingName ? (BINDINGS_REF[bindingName] || null) : null
+  if (!binding) return null
+
+  const rv = {}
+  for (const [vp, dp] of Object.entries(binding.mappings || {})) {
+    rv[vp] = resolvePathFn(result, dp)
+  }
+
+  const categories = {
+    Color: ['color.sector_hues', 'color.saturation', 'color.palette_warmth', 'color.gradient_depth', 'color.mood_era'],
+    Shape: ['shape.complexity', 'shape.symmetry', 'shape.texture', 'shape.mfcc'],
+    Lighting: ['lighting.glow', 'lighting.transmission', 'lighting.rim'],
+    Motion: ['motion.spin', 'motion.pulse', 'motion.flutter'],
+    'Beat Sync': ['beat_sync.chroma', 'beat_sync.luminance', 'beat_sync.tempo'],
+    Scale: ['scale.size'],
+  }
+
+  const [cat, setCat] = useState('Color')
+  const entries = (categories[cat] || []).filter(k => k in binding.mappings)
+
+  function fmtVal(v) {
+    if (v === undefined || v === null) return '—'
+    if (typeof v === 'number') return Number.isFinite(v) ? v.toFixed(4) : 'NaN'
+    if (typeof v === 'string') return v.length > 50 ? v.slice(0, 47) + '…' : v
+    if (Array.isArray(v)) return `[${v.length}]`
+    return String(v).slice(0, 30)
+  }
+
+  useEffect(() => {
+    function onKey(e) { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   return (
-    <div className="how-built-strip">
-      <button className="how-built-toggle" onClick={() => setOpen(!open)}>
-        {open ? '▾' : '▸'} How This Glyph Was Built
-      </button>
-      {open && (
-        <div className="how-built-body">
-          <GlyphDiagnostics result={result} bindingName={bindingName} inline />
+    <div className="hb-overlay" onClick={onClose}>
+      <div className="hb-panel" onClick={e => e.stopPropagation()}>
+        <div className="hb-header">
+          <span className="hb-title">How This Glyph Was Built</span>
+          <span className="hb-meta">Binding: {bindingName}</span>
+          <button className="hb-close" onClick={onClose}>×</button>
         </div>
-      )}
+        <div className="hb-tabs">
+          {Object.keys(categories).map(c => (
+            <button key={c} className={`hb-tab ${cat === c ? 'active' : ''}`} onClick={() => setCat(c)}>{c}</button>
+          ))}
+        </div>
+        <div className="hb-table-wrap">
+          <table className="hb-table">
+            <thead><tr><th>Property</th><th>Source</th><th>Value</th></tr></thead>
+            <tbody>
+              {entries.map(vp => (
+                <tr key={vp}>
+                  <td className="hb-prop">{vp.split('.').pop()}</td>
+                  <td className="hb-src">{binding.mappings[vp]}</td>
+                  <td className="hb-val">{fmtVal(rv[vp])}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }
@@ -127,6 +179,7 @@ function Studio() {
   const audioRef = useRef(null)
   const toast = useGlobalToast()
 
+  const [showHowBuilt, setShowHowBuilt] = useState(false)
   const showUpload = tabs.length === 0 || activeTabId === '__new__'
   const showCompare = compareTabIds && compareTabIds.length === 2
   const tab = activeTab
@@ -204,27 +257,30 @@ function Studio() {
 
             {cas && (
               <>
-                <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-                  <ModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
-                </div>
-
-                <div className="glyph-area">
+                <div className="glyph-hero">
                   <GlyphErrorBoundary hex={cas.rgb?.hex}>
                     <GlyphCanvas result={tab.result} modelName={tab.modelName} bindingName={tab.bindingName}
                       glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
                   </GlyphErrorBoundary>
                 </div>
 
-                <div className="song-info">
+                <div className="info-bar">
+                  <ModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
                   <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
                   <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
                   <span className="hex-badge">{cas.rgb?.hex}</span>
-                  <span className="hash-small">{cas.composite_hash?.slice(0, 10)}…</span>
+                  <div className="info-bar-right">
+                    <button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }} title="Export PNG (E)">⬇</button>
+                    <button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }} title="Export JSON">{ '{' }</button>
+                    <button className="icon-btn" onClick={() => setShowHowBuilt(true)} title="How This Glyph Was Built">?</button>
+                  </div>
                 </div>
 
                 {tab.fileObjectUrl && <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />}
 
-                <HowBuiltStrip result={tab.result} bindingName={tab.bindingName} />
+                {showHowBuilt && (
+                  <HowBuiltOverlay result={tab.result} bindingName={tab.bindingName} onClose={() => setShowHowBuilt(false)} />
+                )}
               </>
             )}
           </div>
