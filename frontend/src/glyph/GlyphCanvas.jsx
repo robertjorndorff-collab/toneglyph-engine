@@ -348,13 +348,13 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       if (animRef.current) cancelAnimationFrame(animRef.current)
       ro.disconnect()
     }
-  }, [result?.cas?.composite_hash, modelName, bindingName, glyphMode, JSON.stringify(overrides), theme])
+  }, [result?.cas?.composite_hash, bindingName, glyphMode, theme])
 
-  // Static mode: redraw when zoom/pan changes (no rAF loop to pick it up)
+  // Static mode: redraw on zoom/pan/layer/override changes (no rAF loop to pick them up)
   useEffect(() => {
     if (glyphMode !== 'static') return
     if (staticRenderRef.current) staticRenderRef.current()
-  }, [zoomProp, panXProp, panYProp, glyphMode])
+  }, [zoomProp, panXProp, panYProp, glyphMode, JSON.stringify(layers), JSON.stringify(overrides), theme])
 
   if (chroma.length !== 12) return null
 

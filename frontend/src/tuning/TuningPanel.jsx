@@ -52,8 +52,9 @@ export default function TuningPanel({ enhancerUI }) {
             <div className="tp-group-head">
               <h4 className="tp-group-label">Layers</h4>
               {layers.length < 5 && (
-                <Tip text="Add Layer"><button className="tp-reset-btn" onClick={() => setAddingLayer(!addingLayer)}>+ Add</button></Tip>
+                <Tip text="Add Layer"><button className="tp-reset-btn" onClick={() => setAddingLayer(!addingLayer)}>+</button></Tip>
               )}
+              <Tip text="Save Preset"><button className="tp-reset-btn" onClick={() => setSavingPreset(true)}>💾</button></Tip>
             </div>
 
             {addingLayer && (
@@ -97,31 +98,24 @@ export default function TuningPanel({ enhancerUI }) {
             </div>
           </div>
 
-          {/* ── Save as Preset ── */}
-          <div className="tp-group">
-            {!savingPreset ? (
-              <button className="tp-save-preset" onClick={() => setSavingPreset(true)}>Save Configuration as Preset…</button>
-            ) : (
-              <div className="tp-save-input">
-                <input className="tp-select" value={presetName}
-                  onChange={e => setPresetName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) { dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') } }}
-                  placeholder="Preset name…" autoFocus />
-                <button className="tp-reset-btn" onClick={() => {
-                  if (presetName.trim()) dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id })
-                  setSavingPreset(false); setPresetName('')
-                }}>Save</button>
-                <button className="tp-reset-btn" onClick={() => { setSavingPreset(false); setPresetName('') }}>Cancel</button>
-              </div>
-            )}
-          </div>
+          {/* ── Save preset modal (inline) ── */}
+          {savingPreset && (
+            <div className="tp-group tp-save-input">
+              <input className="tp-select" value={presetName}
+                onChange={e => setPresetName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) { dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') } if (e.key === 'Escape') setSavingPreset(false) }}
+                placeholder="Preset name…" autoFocus />
+              <button className="tp-reset-btn" onClick={() => { if (presetName.trim()) dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') }}>Save</button>
+              <button className="tp-reset-btn" onClick={() => setSavingPreset(false)}>×</button>
+            </div>
+          )}
 
           {/* ── Presets ── */}
           <PresetsList dispatch={dispatch} tabId={tab.id} />
 
-          {/* ── Binding ── */}
-          <div className="tp-group">
-            <h4 className="tp-group-label">Pillar Binding</h4>
+          {/* ── Binding (inline) ── */}
+          <div className="tp-group tp-inline">
+            <span className="tp-group-label">Binding</span>
             <select className="tp-select" value={tab.bindingName}
               onChange={e => dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { bindingName: e.target.value } })}>
               {Object.keys(BINDINGS).map(n => <option key={n} value={n}>{n}</option>)}
@@ -153,8 +147,8 @@ export default function TuningPanel({ enhancerUI }) {
 
           {/* ── Pillar Scores ── */}
           {tab.result && (
-            <div className="tp-group">
-              <h4 className="tp-group-label">Pillar Scores</h4>
+            <details className="tp-group tp-collapsible">
+              <summary className="tp-group-label">Pillar Scores</summary>
               <div className="tp-scores">
                 {SCORES.map(({ key, label, fn }) => {
                   const v = fn(tab.result)
@@ -167,7 +161,7 @@ export default function TuningPanel({ enhancerUI }) {
                   )
                 })}
               </div>
-            </div>
+            </details>
           )}
         </div>
       )}
