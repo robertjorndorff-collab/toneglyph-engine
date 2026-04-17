@@ -5,95 +5,117 @@ import { fmt, resolveBindings } from '../shared/constants.js'
 const SLIDERS = [
   { key: 'color.saturation', label: 'Saturation', min: 0, max: 1, step: 0.01 },
   { key: 'color.gradient_depth', label: 'Gradient Depth', min: 0, max: 1, step: 0.01 },
-  { key: 'shape.complexity', label: 'Shape Complexity', min: 0, max: 1, step: 0.01 },
-  { key: 'shape.symmetry', label: 'Shape Symmetry', min: 0, max: 1, step: 0.01 },
+  { key: 'shape.complexity', label: 'Complexity', min: 0, max: 1, step: 0.01 },
+  { key: 'shape.symmetry', label: 'Symmetry', min: 0, max: 1, step: 0.01 },
   { key: 'lighting.glow', label: 'Glow', min: 0, max: 1, step: 0.01 },
-  { key: 'motion.spin', label: 'Rotation Speed', min: 0, max: 2, step: 0.01 },
-  { key: '_palette_warmth', label: 'Palette Warmth', min: -1, max: 1, step: 0.01 },
+  { key: 'motion.spin', label: 'Rotation', min: 0, max: 2, step: 0.01 },
+  { key: '_palette_warmth', label: 'Warmth', min: -1, max: 1, step: 0.01 },
+]
+
+const SCORES = [
+  ['Zeitgeist', r => r.pillar1?.zeitgeist_score],
+  ['DNA', r => r.pillar2?.dna_score],
+  ['Harmonic', r => r.pillar3?.harmonic_complexity],
+  ['Rhythmic', r => r.pillar3?.rhythmic_complexity],
+  ['Hidden Cx', r => r.pillar4?.hidden_complexity_score],
+  ['Novelty', r => r.pillar5?.novelty_score],
 ]
 
 export default function TuningPanel() {
   const { activeTab, tuningOpen, dispatch } = useStudio()
-  if (!tuningOpen || !activeTab) return null
 
   const tab = activeTab
-  const binding = BINDINGS[tab.bindingName] || BINDINGS['Default']
-  const rv = resolveBindings(binding, tab.result)
-
-  function setModel(n) { dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { modelName: n } }) }
-  function setBinding(n) { dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { bindingName: n } }) }
-  function setOverride(key, val) { dispatch({ type: 'SET_OVERRIDE', key, value: val }) }
-  function clearAll() { dispatch({ type: 'CLEAR_OVERRIDES' }) }
+  const binding = tab ? (BINDINGS[tab.bindingName] || BINDINGS['Default']) : null
+  const rv = tab?.result ? resolveBindings(binding, tab.result) : {}
 
   return (
-    <div className="tuning-panel">
-      <div className="tp-header">
-        <span>Tuning</span>
-        <button className="tp-close" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button>
-      </div>
-
-      <div className="tp-section">
-        <label className="tp-label">Visual Model</label>
-        <select value={tab.modelName} onChange={e => setModel(e.target.value)}>
-          {Object.keys(MODELS).map(n => <option key={n}>{n}</option>)}
-        </select>
-        <p className="tp-hint">{MODELS[tab.modelName]?.description?.slice(0, 100)}</p>
-      </div>
-
-      <div className="tp-section">
-        <label className="tp-label">Pillar Binding</label>
-        <select value={tab.bindingName} onChange={e => setBinding(e.target.value)}>
-          {Object.keys(BINDINGS).map(n => <option key={n}>{n}</option>)}
-        </select>
-      </div>
-
-      <div className="tp-section">
-        <div className="tp-section-head">
-          <label className="tp-label">Live Overrides</label>
-          <button className="tp-reset" onClick={clearAll}>Reset</button>
+    <div className={`tp ${tuningOpen ? 'tp-open' : 'tp-closed'}`}>
+      {!tuningOpen ? null : !tab ? (
+        <div className="tp-inner">
+          <div className="tp-top">
+            <span className="tp-title">Tuning</span>
+            <button className="tp-x" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button>
+          </div>
+          <p className="tp-empty">No song selected</p>
         </div>
-        {SLIDERS.map(s => {
-          const base = typeof rv[s.key] === 'number' ? rv[s.key] : 0.5
-          const current = tab.overrides[s.key] ?? base
-          return (
-            <div key={s.key} className="tp-slider">
-              <span className="tp-slider-label">{s.label}</span>
-              <input type="range" min={s.min} max={s.max} step={s.step}
-                value={current} onChange={e => setOverride(s.key, parseFloat(e.target.value))} />
-              <span className="tp-slider-val">{fmt(current, 2)}</span>
-            </div>
-          )
-        })}
-      </div>
+      ) : (
+        <div className="tp-inner">
+          <div className="tp-top">
+            <span className="tp-title">Tuning</span>
+            <button className="tp-x" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button>
+          </div>
 
-      {tab.result && (
-        <div className="tp-section">
-          <label className="tp-label">Pillar Scores</label>
-          <PillarMiniReadout result={tab.result} />
+          {/* ── Visual Model ── */}
+          <div className="tp-group">
+            <h4 className="tp-group-label">Visual Model</h4>
+            <select
+              className="tp-select"
+              value={tab.modelName}
+              onChange={e => dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { modelName: e.target.value } })}
+            >
+              {Object.keys(MODELS).map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+            <p className="tp-desc">{MODELS[tab.modelName]?.description?.slice(0, 90)}</p>
+          </div>
+
+          {/* ── Binding ── */}
+          <div className="tp-group">
+            <h4 className="tp-group-label">Pillar Binding</h4>
+            <select
+              className="tp-select"
+              value={tab.bindingName}
+              onChange={e => dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { bindingName: e.target.value } })}
+            >
+              {Object.keys(BINDINGS).map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          </div>
+
+          {/* ── Live Overrides ── */}
+          <div className="tp-group">
+            <div className="tp-group-head">
+              <h4 className="tp-group-label">Live Overrides</h4>
+              <button className="tp-reset-btn" onClick={() => dispatch({ type: 'CLEAR_OVERRIDES' })}>Reset</button>
+            </div>
+            {SLIDERS.map(s => {
+              const base = typeof rv[s.key] === 'number' ? rv[s.key] : (s.min + s.max) / 2
+              const val = tab.overrides[s.key] ?? base
+              return (
+                <div key={s.key} className="tp-ctrl">
+                  <span className="tp-ctrl-label">{s.label}</span>
+                  <input
+                    className="tp-range"
+                    type="range" min={s.min} max={s.max} step={s.step}
+                    value={val}
+                    onChange={e => dispatch({ type: 'SET_OVERRIDE', key: s.key, value: parseFloat(e.target.value) })}
+                  />
+                  <span className="tp-ctrl-val">{fmt(val, 2)}</span>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* ── Pillar Scores ── */}
+          {tab.result && (
+            <div className="tp-group">
+              <h4 className="tp-group-label">Pillar Scores</h4>
+              <div className="tp-scores">
+                {SCORES.map(([label, fn]) => {
+                  const v = fn(tab.result)
+                  return (
+                    <div key={label} className="tp-score">
+                      <span className="tp-score-name">{label}</span>
+                      <div className="tp-score-track">
+                        <div className="tp-score-bar" style={{ width: `${(v || 0) * 100}%` }} />
+                      </div>
+                      <span className="tp-score-val">{fmt(v, 2)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )}
         </div>
       )}
-    </div>
-  )
-}
-
-function PillarMiniReadout({ result }) {
-  const scores = [
-    ['P1 Zeitgeist', result.pillar1?.zeitgeist_score],
-    ['P2 DNA', result.pillar2?.dna_score],
-    ['P3 Harmonic', result.pillar3?.harmonic_complexity],
-    ['P3 Rhythmic', result.pillar3?.rhythmic_complexity],
-    ['P4 Hidden Cx', result.pillar4?.hidden_complexity_score],
-    ['P5 Novelty', result.pillar5?.novelty_score],
-  ]
-  return (
-    <div className="tp-mini-scores">
-      {scores.map(([label, val]) => (
-        <div key={label} className="tp-score-row">
-          <span>{label}</span>
-          <div className="tp-score-bar"><div className="tp-score-fill" style={{ width: `${(val || 0) * 100}%` }} /></div>
-          <span>{fmt(val, 2)}</span>
-        </div>
-      ))}
     </div>
   )
 }

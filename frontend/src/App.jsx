@@ -229,7 +229,7 @@ function Studio() {
             )}
           </div>
 
-          {tuningOpen && <TuningPanel />}
+          <TuningPanel />
 
           {!tuningOpen && tab?.result && (
             <button className="tuning-toggle" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })} title="Tuning Panel (T)">⚙</button>
