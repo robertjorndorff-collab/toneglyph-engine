@@ -33,11 +33,12 @@ export const BINDINGS = Object.fromEntries(
   Object.entries(bindingFiles).map(([, mod]) => { const d = mod.default || mod; return [d.name, d] })
 )
 
-export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef }) {
+export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef, zoom: zoomProp, panX: panXProp, panY: panYProp, onZoomChange }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
   const [tooltip, setTooltip] = useState(null)
   const layersRef = useRef(null)
+  const zoomRef = useRef({ zoom: zoomProp || 1, panX: panXProp || 0, panY: panYProp || 0, dragging: false, dragStart: null })
 
   const activeLayers = useMemo(() => {
     if (layers && layers.length > 0) return layers.filter(l => l.visible !== false)
@@ -107,6 +108,38 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       setTooltip(null)
     }
   }, [chroma, mood, model])
+
+  // Keep zoom ref in sync with props
+  zoomRef.current.zoom = zoomProp || 1
+  zoomRef.current.panX = panXProp || 0
+  zoomRef.current.panY = panYProp || 0
+
+  const handleWheel = useCallback((e) => {
+    e.preventDefault()
+    const z = zoomRef.current
+    const delta = e.deltaY > 0 ? 0.9 : 1.1
+    const newZoom = Math.max(0.25, Math.min(4, z.zoom * delta))
+    if (onZoomChange) onZoomChange({ zoom: newZoom, panX: z.panX, panY: z.panY })
+  }, [onZoomChange])
+
+  const handlePanStart = useCallback((e) => {
+    if (zoomRef.current.zoom <= 1.05) return
+    zoomRef.current.dragging = true
+    zoomRef.current.dragStart = { x: e.clientX, y: e.clientY, px: zoomRef.current.panX, py: zoomRef.current.panY }
+  }, [])
+
+  const handlePanMove = useCallback((e) => {
+    const z = zoomRef.current
+    if (!z.dragging || !z.dragStart) return
+    const dx = e.clientX - z.dragStart.x
+    const dy = e.clientY - z.dragStart.y
+    if (onZoomChange) onZoomChange({ zoom: z.zoom, panX: z.dragStart.px + dx, panY: z.dragStart.py + dy })
+  }, [onZoomChange])
+
+  const handlePanEnd = useCallback(() => {
+    zoomRef.current.dragging = false
+    zoomRef.current.dragStart = null
+  }, [])
 
   useEffect(() => {
     const canvas = canvasRef.current
@@ -199,9 +232,11 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       ctx.fillStyle = '#080c18'
       ctx.fillRect(0, 0, cssW, cssH)
 
-      // Apply rotation/pulse
+      // Apply zoom + pan + rotation + pulse
+      const z = zoomRef.current
       ctx.save()
-      ctx.translate(cssW / 2, cssH / 2)
+      ctx.translate(cssW / 2 + z.panX, cssH / 2 + z.panY)
+      ctx.scale(z.zoom, z.zoom)
       ctx.rotate(rotation); ctx.scale(pulse, pulse)
       ctx.translate(-cssW / 2, -cssH / 2)
 
@@ -269,6 +304,9 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       animRef.current = requestAnimationFrame(frame)
     }
 
+    // Wheel zoom listener (passive: false to allow preventDefault)
+    canvas.addEventListener('wheel', handleWheel, { passive: false })
+
     const ro = new ResizeObserver(() => {
       resize()
       cssW = sizeRef.w; cssH = sizeRef.h
@@ -280,6 +318,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     ro.observe(canvas.parentElement)
 
     return () => {
+      canvas.removeEventListener('wheel', handleWheel)
       if (animRef.current) cancelAnimationFrame(animRef.current)
       ro.disconnect()
     }
@@ -289,9 +328,18 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
   return (
     <div className="glyph-wrap">
-      <div className="glyph-canvas" style={{ position: 'relative' }}>
-        <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)} />
+      <div className="glyph-canvas" style={{ position: 'relative', cursor: (zoomProp || 1) > 1.05 ? 'grab' : 'default' }}>
+        <canvas ref={canvasRef}
+          onMouseMove={handleMouseMove} onMouseLeave={() => { setTooltip(null); handlePanEnd() }}
+          onMouseDown={handlePanStart} onMouseUp={handlePanEnd}
+          onMouseMoveCapture={handlePanMove} />
         {tooltip && <div className="glyph-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>{tooltip.text}</div>}
+        <div className="zoom-ui">
+          <button className="zoom-btn" onClick={() => onZoomChange?.({ zoom: Math.min(4, (zoomProp || 1) * 1.2), panX: panXProp || 0, panY: panYProp || 0 })}>+</button>
+          <span className="zoom-pct">{Math.round((zoomProp || 1) * 100)}%</span>
+          <button className="zoom-btn" onClick={() => onZoomChange?.({ zoom: Math.max(0.25, (zoomProp || 1) * 0.8), panX: panXProp || 0, panY: panYProp || 0 })}>−</button>
+          <button className="zoom-btn zoom-reset" onClick={() => onZoomChange?.({ zoom: 1, panX: 0, panY: 0 })}>Fit</button>
+        </div>
       </div>
     </div>
   )

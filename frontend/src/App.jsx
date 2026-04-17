@@ -56,10 +56,15 @@ function GlyphModeSelector({ mode, setMode, audioRef, fileObjectUrl }) {
   )
 }
 
-function WorkspaceModeSelector({ mode, setMode }) {
+function gridCols(n) {
+  if (n <= 2) return 2; if (n <= 4) return 2; if (n <= 6) return 3
+  if (n <= 9) return 3; if (n <= 12) return 4; if (n <= 16) return 4; return 5
+}
+
+function WorkspaceModeSelector({ mode, setMode, tabCount }) {
   return (
     <div className="mode-selector ws-mode">
-      {[['glyph','Glyph'],['detail','Detail'],['split','Split']].map(([m,l]) => (
+      {[['glyph','Glyph'],['detail','Detail'],['split','Split'],['grid','Grid']].filter(([m]) => m !== 'grid' || tabCount >= 2).map(([m,l]) => (
         <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button>
       ))}
     </div>
@@ -75,7 +80,7 @@ function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm, audioRef }) {
       <span className="info-sep" />
       <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} audioRef={audioRef} fileObjectUrl={tab.fileObjectUrl} />
       <span className="info-sep" />
-      <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} />
+      <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} tabCount={tabs.length} />
       <div className="info-bar-right">
         <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
         <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
@@ -212,8 +217,12 @@ function Studio() {
       if (e.key==='g') dispatch({type:'SET_WORKSPACE_MODE',mode:'glyph'})
       if (e.key==='d') dispatch({type:'SET_WORKSPACE_MODE',mode:'detail'})
       if (e.key==='s'&&!e.metaKey&&!e.ctrlKey) { e.preventDefault(); dispatch({type:'SET_WORKSPACE_MODE',mode:'split'}) }
+      if (e.key==='v'&&tabs.length>=2) dispatch({type:'SET_WORKSPACE_MODE',mode:wsm==='grid'?'glyph':'grid'})
       if (e.key==='e'||e.key==='E') { const c=document.querySelector('.glyph-canvas canvas'); if(c){const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='toneglyph.png';a.click()} }
       if (e.key===' '&&tab?.file) { e.preventDefault(); dispatch({type:'TAB_UPDATE',id:tab.id,patch:{result:null,error:null,uploading:true}}) }
+      if ((e.key==='+'||e.key==='=')&&tab) dispatch({type:'TAB_UPDATE',id:tab.id,patch:{zoom:Math.min(4,(tab.zoom||1)*1.2)}})
+      if (e.key==='-'&&tab) dispatch({type:'TAB_UPDATE',id:tab.id,patch:{zoom:Math.max(0.25,(tab.zoom||1)*0.8)}})
+      if (e.key==='0'&&tab) dispatch({type:'TAB_UPDATE',id:tab.id,patch:{zoom:1,panX:0,panY:0}})
       if (e.key==='Escape') { if(showHowBuilt) setShowHowBuilt(false); else if(compareTabIds) dispatch({type:'EXIT_COMPARE'}); else if(tuningOpen) dispatch({type:'TOGGLE_TUNING'}) }
     }
     window.addEventListener('keydown',onKey)
@@ -227,7 +236,9 @@ function Studio() {
     <div style={{ filter: eraFilter || undefined, position: 'relative', width: '100%', height: '100%' }}>
       <GlyphErrorBoundary hex={cas.rgb?.hex}>
         <GlyphCanvas result={tab.result} modelName={tab.modelName} layers={tab.layers} bindingName={tab.bindingName}
-          glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
+          glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef}
+          zoom={tab.zoom} panX={tab.panX} panY={tab.panY}
+          onZoomChange={z => dispatch({type:'TAB_UPDATE', id:tab.id, patch: z})} />
       </GlyphErrorBoundary>
       {(enh.lyricsOn || enh.eraOn) && (
         <div className="enhancer-badges">
@@ -270,7 +281,16 @@ function Studio() {
   )
 
   const audioEl = tab?.fileObjectUrl
-    ? <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />
+    ? <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} onSnapshot={() => {
+        const c = document.querySelector('.glyph-canvas canvas')
+        if (!c) return
+        const t = audioRef.current?.currentTime || 0
+        const mm = Math.floor(t / 60), ss = Math.floor(t % 60)
+        const a = document.createElement('a')
+        a.href = c.toDataURL('image/png')
+        a.download = `toneglyph-${tab.result?.cas?.pantone_id || 'snap'}-${mm}-${ss.toString().padStart(2,'0')}.png`
+        a.click()
+      }} />
     : (tab?.result ? <ReattachAudio tab={tab} dispatch={dispatch} /> : null)
 
   return (
@@ -316,6 +336,25 @@ function Studio() {
             {tab?.result && <FullPillarReadout result={tab.result} />}
           </div>
           {tuningOpen && <TuningPanel enhancerUI={enhancerUI} />}
+        </div>
+      ) : wsm === 'grid' && tabs.length >= 2 ? (
+        /* ── GRID MODE: panoramic compare ── */
+        <div className="ws-grid" style={{ gridTemplateColumns: `repeat(${gridCols(tabs.length)}, 1fr)` }}>
+          {tabs.map(t => {
+            const tCas = t.result?.cas
+            return (
+              <div key={t.id} className="grid-tile" onClick={() => { dispatch({type:'TAB_SELECT',id:t.id}); dispatch({type:'SET_WORKSPACE_MODE',mode:'glyph'}) }}>
+                <div className="grid-glyph">
+                  {tCas && <GlyphCanvas result={t.result} modelName={t.modelName} layers={t.layers} bindingName={t.bindingName} glyphMode="animated" overrides={t.overrides} />}
+                </div>
+                <div className="grid-meta">
+                  <span className="grid-name">{(t.filename || '').replace(/\.[^.]+$/, '').slice(0, 25)}</span>
+                  {tCas && <span className="grid-badge" style={{ background: tCas.rgb?.hex }}>{tCas.pantone_id?.slice(0, 12)}</span>}
+                  <span className="grid-layers">{(t.layers || []).filter(l=>l.visible!==false).map(l=>l.modelName).join(', ')}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
       ) : (
         /* ── G MODE: glyph hero (default) ── */

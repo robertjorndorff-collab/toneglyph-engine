@@ -71,6 +71,20 @@
 .glyph-canvas { width: 100%; height: 100%; border-radius: 8px; overflow: hidden; }
 .glyph-canvas canvas { display: block; width: 100%; height: 100%; }
 
+.zoom-ui {
+  position: absolute; bottom: 10px; right: 10px; display: flex; align-items: center; gap: 3px;
+  background: rgba(8,12,24,0.85); border: 1px solid var(--border); border-radius: 6px;
+  padding: 3px 6px; backdrop-filter: blur(8px); z-index: 10;
+}
+.zoom-btn {
+  width: 24px; height: 24px; border: none; background: none; color: var(--text);
+  cursor: pointer; font-size: 0.875rem; display: flex; align-items: center; justify-content: center;
+  border-radius: 3px; transition: color 0.15s;
+}
+.zoom-btn:hover { color: var(--accent); background: rgba(255,255,255,0.06); }
+.zoom-reset { font-size: 0.5625rem; font-family: var(--mono); width: auto; padding: 0 6px; }
+.zoom-pct { font-family: var(--mono); font-size: 0.5625rem; color: var(--text-h); min-width: 32px; text-align: center; }
+
 .glyph-tooltip { position: absolute; background: rgba(8,12,24,0.92); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; font-family: var(--mono); font-size: 0.625rem; color: var(--text-h); white-space: nowrap; pointer-events: none; z-index: 50; }
 
 .glyph-fallback { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
@@ -105,6 +119,8 @@
 .ap-track { position: absolute; left: 0; right: 0; height: 2px; background: var(--border); border-radius: 1px; }
 .ap-progress { position: absolute; left: 0; height: 2px; background: var(--accent); border-radius: 1px; }
 .ap-head { position: absolute; width: 8px; height: 8px; background: var(--accent); border-radius: 50%; transform: translateX(-50%); }
+.ap-snapshot { background: none; border: 1px solid var(--border); border-radius: 4px; cursor: pointer; font-size: 0.75rem; padding: 2px 6px; color: var(--text); flex-shrink: 0; }
+.ap-snapshot:hover { border-color: var(--accent); }
 
 /* ── Export bar — icon buttons ───────────────────────────────────── */
 
@@ -646,6 +662,29 @@ button, select, [role=button], .tab, .tab-new, .icon-btn, .mode-btn,
 .how-built-toggle, .hb-tab, .hb-close, .enh-toggle label,
 .diag-toggle, .compare-exit, .tuning-toggle, .tab-close,
 .ap-play, .ap-scrub { cursor: pointer; }
+
+/* ── Grid view ───────────────────────────────────────────────────── */
+
+.ws-grid {
+  flex: 1; display: grid; gap: 1px; background: var(--border);
+  overflow: hidden; padding: 0;
+}
+.grid-tile {
+  background: var(--bg); display: flex; flex-direction: column;
+  cursor: pointer; overflow: hidden; transition: background 0.15s;
+}
+.grid-tile:hover { background: rgba(255,255,255,0.03); }
+.grid-glyph { flex: 1; min-height: 0; }
+.grid-glyph .glyph-wrap, .grid-glyph .glyph-canvas { width: 100%; height: 100%; }
+.grid-glyph .glyph-canvas canvas { width: 100%; height: 100%; }
+.grid-glyph .zoom-ui { display: none; }
+.grid-meta {
+  flex-shrink: 0; padding: 6px 10px; display: flex; align-items: center; gap: 6px;
+  border-top: 1px solid var(--border); flex-wrap: wrap;
+}
+.grid-name { font-family: var(--mono); font-size: 0.625rem; color: var(--text-h); }
+.grid-badge { font-family: var(--mono); font-size: 0.5rem; padding: 1px 5px; border-radius: 2px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); }
+.grid-layers { font-family: var(--mono); font-size: 0.5rem; color: var(--text); opacity: 0.5; }
 
 /* ── Responsive ──────────────────────────────────────────────────── */
 
