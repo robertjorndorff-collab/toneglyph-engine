@@ -1,8 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 
-export default function Tip({ text, children, shortcut, position = 'above' }) {
+export default function Tip({ text, children, shortcut, position = 'auto' }) {
   const [show, setShow] = useState(false)
-  const [coords, setCoords] = useState(null)
+  const [style, setStyle] = useState(null)
+  const [placement, setPlacement] = useState('above')
   const timerRef = useRef(null)
   const elRef = useRef(null)
 
@@ -11,11 +12,27 @@ export default function Tip({ text, children, shortcut, position = 'above' }) {
       const el = elRef.current
       if (!el) return
       const rect = el.getBoundingClientRect()
-      const above = position === 'above' && rect.top > 50
-      setCoords({
-        left: rect.left + rect.width / 2,
-        top: above ? rect.top - 6 : rect.bottom + 6,
-        above,
+      const cx = rect.left + rect.width / 2
+      const tipW = 160
+
+      // Vertical: prefer above, flip below if near top
+      let above = rect.top > 60
+      if (position === 'below') above = false
+      if (position === 'above') above = rect.top > 60
+
+      // Horizontal: clamp so tooltip doesn't fall off left/right edge
+      let left = cx
+      if (left - tipW / 2 < 8) left = tipW / 2 + 8
+      if (left + tipW / 2 > window.innerWidth - 8) left = window.innerWidth - tipW / 2 - 8
+
+      setPlacement(above ? 'above' : 'below')
+      setStyle({
+        position: 'fixed',
+        left,
+        top: above ? rect.top - 8 : rect.bottom + 8,
+        transform: above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
+        zIndex: 9999,
+        maxWidth: tipW,
       })
       setShow(true)
     }, 400)
@@ -33,12 +50,8 @@ export default function Tip({ text, children, shortcut, position = 'above' }) {
   return (
     <span ref={elRef} onMouseEnter={enter} onMouseLeave={leave} style={{ cursor: 'pointer' }}>
       {children}
-      {show && coords && (
-        <span className={`tip ${coords.above ? 'tip-above' : 'tip-below'}`} style={{
-          position: 'fixed', left: coords.left, top: coords.top,
-          transform: coords.above ? 'translate(-50%, -100%)' : 'translate(-50%, 0)',
-          zIndex: 9999,
-        }}>
+      {show && style && (
+        <span className={`tip tip-${placement}`} style={style}>
           {label}
           <span className="tip-arrow" />
         </span>

@@ -48,10 +48,17 @@
 .upload-view h1 { font-size: 2rem; letter-spacing: -0.5px; margin: 0; }
 .subtitle { color: var(--accent); font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; }
 
-.dropzone { max-width: 440px; padding: 40px 28px; border: 2px dashed var(--border); border-radius: 10px; cursor: pointer; transition: border-color 0.2s, background 0.2s; }
-.dropzone:hover, .dropzone.active { border-color: var(--accent); background: rgba(192,132,252,0.05); }
-.drop-label { color: var(--text-h); font-size: 1rem; font-weight: 500; margin-bottom: 6px; }
-.drop-hint { color: var(--text); font-size: 0.75rem; }
+.dropzone {
+  max-width: 520px; width: 100%; padding: 56px 48px; border: 1.5px dashed rgba(255,255,255,0.12);
+  border-radius: 20px; cursor: pointer; transition: all 0.25s ease;
+  background: rgba(255,255,255,0.02);
+}
+.dropzone:hover, .dropzone.active {
+  border-color: var(--accent); background: rgba(192,132,252,0.04);
+  box-shadow: 0 0 40px rgba(192,132,252,0.06);
+}
+.drop-label { font-family: 'Inter', var(--sans); color: var(--text-h); font-size: 1.25rem; font-weight: 400; margin-bottom: 8px; }
+.drop-hint { font-family: 'Inter', var(--sans); color: var(--text); font-size: 0.8125rem; opacity: 0.5; }
 
 /* ── Glyph hero — fills the space, IS the viewport ───────────────── */
 
@@ -107,10 +114,10 @@
 
 /* ── Mode selector ───────────────────────────────────────────────── */
 
-.mode-selector { display: flex; gap: 2px; background: rgba(255,255,255,0.04); border-radius: 5px; padding: 2px; flex-shrink: 0; }
-.mode-btn { background: none; border: none; color: var(--text); cursor: pointer; font-family: var(--mono); font-size: 0.5625rem; text-transform: uppercase; letter-spacing: 0.5px; padding: 4px 12px; border-radius: 3px; transition: all 0.15s; }
+.mode-selector { display: flex; gap: 2px; background: rgba(255,255,255,0.04); border-radius: 6px; padding: 2px; flex-shrink: 0; }
+.mode-btn { background: none; border: none; color: var(--text); cursor: pointer; font-family: var(--mono); font-size: 0.6875rem; letter-spacing: 0.3px; padding: 6px 16px; border-radius: 4px; transition: all 0.15s; }
 .mode-btn.active { background: var(--accent); color: #fff; }
-.mode-btn:hover:not(.active) { color: var(--text-h); }
+.mode-btn:hover:not(.active) { color: var(--text-h); background: rgba(255,255,255,0.04); }
 
 /* ── How Built overlay ────────────────────────────────────────────── */
 
@@ -416,10 +423,10 @@
 /* ── Tuning toggle button ── */
 
 .tuning-toggle {
-  position: fixed; right: 16px; top: 48px; z-index: 100;
-  width: 36px; height: 36px; border-radius: 50%;
-  border: 1px solid var(--border); background: rgba(8,12,24,0.85);
-  color: var(--text); font-size: 1rem; cursor: pointer;
+  position: fixed; right: 16px; top: 64px; z-index: 100;
+  width: 32px; height: 32px; border-radius: 6px;
+  border: 1px solid var(--border); background: rgba(8,12,24,0.9);
+  color: var(--text); font-size: 0.625rem; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
   backdrop-filter: blur(8px); transition: border-color 0.15s, color 0.15s;
 }
@@ -497,8 +504,8 @@
 
 /* ── Workspace mode float ────────────────────────────────────────── */
 
-.ws-mode-float { position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%); z-index: 80; }
-.ws-mode .mode-btn { font-size: 0.625rem; padding: 5px 14px; }
+.ws-mode-float { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); z-index: 80; }
+.ws-mode .mode-btn { font-size: 0.75rem; padding: 8px 20px; }
 
 /* ── D MODE: detail grid ─────────────────────────────────────────── */
 
@@ -582,8 +589,8 @@
 
 /* ── Logo ─────────────────────────────────────────────────────────── */
 
-.home-logo { width: 360px; height: auto; margin-bottom: 16px; }
-.home-title { font-family: 'Inter', var(--sans); font-size: 1.75rem; font-weight: 300; letter-spacing: 6px; text-transform: uppercase; color: var(--text-h); opacity: 0.6; margin: 0; }
+.home-logo { width: 320px; height: auto; margin-bottom: 4px; }
+.home-title { font-family: 'Inter', var(--sans); font-size: 1.5rem; font-weight: 200; letter-spacing: 8px; text-transform: uppercase; color: var(--text-h); opacity: 0.45; margin: 0 0 40px; }
 
 .tab-logo { height: 28px; width: auto; margin-right: 10px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; flex-shrink: 0; }
 .tab-logo:hover { opacity: 1; }
@@ -592,9 +599,10 @@
 
 .tip {
   background: #1a1a2e; color: #fff; font-family: var(--mono); font-size: 0.6875rem;
-  padding: 5px 10px; border-radius: 4px; white-space: nowrap;
+  padding: 6px 12px; border-radius: 6px; white-space: nowrap;
   pointer-events: none; animation: tip-fade 150ms ease;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  text-align: center;
 }
 
 .tip-arrow {
@@ -605,7 +613,9 @@
 .tip-above .tip-arrow { bottom: -5px; transform: translateX(-50%); border-top: 5px solid #1a1a2e; }
 .tip-below .tip-arrow { top: -5px; transform: translateX(-50%); border-bottom: 5px solid #1a1a2e; }
 
-@keyframes tip-fade { from { opacity: 0; transform: translate(-50%, -100%) translateY(-4px); } to { opacity: 1; } }
+@keyframes tip-fade {
+  from { opacity: 0; } to { opacity: 1; }
+}
 
 /* cursor: pointer on all interactive elements */
 button, select, [role=button], .tab, .tab-new, .icon-btn, .mode-btn,

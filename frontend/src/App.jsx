@@ -35,22 +35,20 @@ function useGlobalToast() {
 }
 
 function GlyphModeSelector({ mode, setMode }) {
-  const tips = { static: 'Static — canonical glyph', animated: 'Animated — living artifact', temporal: 'Temporal — evolves with playback' }
   return (
     <div className="mode-selector">
-      {[['static','S'],['animated','A'],['temporal','T']].map(([m,l]) => (
-        <Tip key={m} text={tips[m]}><button className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button></Tip>
+      {[['static','Static'],['animated','Animated'],['temporal','Temporal']].map(([m,l]) => (
+        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button>
       ))}
     </div>
   )
 }
 
 function WorkspaceModeSelector({ mode, setMode }) {
-  const tips = { glyph: 'Glyph View', detail: 'Detail View', split: 'Split View' }
   return (
     <div className="mode-selector ws-mode">
-      {[['glyph','G'],['detail','D'],['split','S']].map(([m,l]) => (
-        <Tip key={m} text={tips[m]} shortcut={l}><button className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button></Tip>
+      {[['glyph','Glyph'],['detail','Detail'],['split','Split']].map(([m,l]) => (
+        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>{l}</button>
       ))}
     </div>
   )
@@ -287,7 +285,7 @@ function Studio() {
             )}
           </div>
           <TuningPanel enhancerUI={enhancerUI} />
-          {tab?.result && <Tip text="Toggle Tuning Panel" shortcut="T"><button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})}>⚙</button></Tip>}
+          {tab?.result && <Tip text="Toggle Tuning Panel" shortcut="T"><button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})}>{tuningOpen ? '▶' : '◀'}</button></Tip>}
           <div className="ws-mode-float">
             <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
           </div>
