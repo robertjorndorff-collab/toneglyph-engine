@@ -37,13 +37,16 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
   const canvasRef = useRef(null)
   const animRef = useRef(null)
   const [tooltip, setTooltip] = useState(null)
+  const layersRef = useRef(null)
 
-  // Support both legacy single-model and new layer system
   const activeLayers = useMemo(() => {
     if (layers && layers.length > 0) return layers.filter(l => l.visible !== false)
     const name = modelName || 'Chromatic'
     return [{ id: '_default', modelName: name, opacity: 1, visible: true }]
   }, [layers, modelName])
+
+  // Keep a live ref so the animation loop always reads current layers
+  layersRef.current = activeLayers
 
   const primaryModel = MODELS[activeLayers[0]?.modelName] || MODELS['Chromatic'] || Object.values(MODELS)[0]
   const model = primaryModel
@@ -147,15 +150,6 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       harmonic: num(result?.pillar3?.harmonic_complexity, 0.5),
     }
 
-    // Offscreen canvases for layer compositing
-    const layerCanvases = activeLayers.map(() => {
-      const c = document.createElement('canvas')
-      c.width = cssW * dpr; c.height = cssH * dpr
-      const lctx = c.getContext('2d')
-      lctx.scale(dpr, dpr)
-      return { canvas: c, ctx: lctx }
-    })
-
     const startTime = performance.now()
 
     function getActiveChroma(t) {
@@ -176,39 +170,44 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
     function getBeatLum(ac) { const mx = Math.max(...ac, 0.001); return ac.map(v => num(v) / mx) }
 
+    // Single reusable offscreen canvas for layer compositing
+    const offscreen = document.createElement('canvas')
+    offscreen.width = cssW; offscreen.height = cssH
+    const offCtx = offscreen.getContext('2d')
+
     function renderAllLayers(activeChroma, beatLum, rotation, pulse) {
-      // Clear main canvas
+      const curLayers = layersRef.current || activeLayers
+
+      // Background on main canvas
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, cssW, cssH)
-      ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, cssW, cssH)
+      ctx.fillStyle = '#080c18'
+      ctx.fillRect(0, 0, cssW, cssH)
 
-      // Render each layer to its offscreen canvas
-      for (let li = 0; li < activeLayers.length; li++) {
-        const layer = activeLayers[li]
-        const lModel = MODELS[layer.modelName] || MODELS['Chromatic']
-        const lRenderFn = RENDERERS[lModel?.renderer] || renderChromatic
-        const lctx = layerCanvases[li].ctx
-        const lShape = computeShape(chroma, mfcc, complexity, symmetry,
-          lModel?.shape_strategy?.vertex_count || 720,
-          lModel?.shape_strategy?.organic_distortion !== false)
-
-        lctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-        lctx.clearRect(0, 0, cssW, cssH)
-        lRenderFn(lctx, cssW, cssH, activeChroma, lModel, mood, lShape, beatLum, opts)
-      }
-
-      // Composite layers onto main canvas with transforms
+      // Apply rotation/pulse
       ctx.save()
       ctx.translate(cssW / 2, cssH / 2)
       ctx.rotate(rotation); ctx.scale(pulse, pulse)
       ctx.translate(-cssW / 2, -cssH / 2)
 
-      for (let li = 0; li < activeLayers.length; li++) {
-        const layer = activeLayers[li]
+      for (let li = 0; li < curLayers.length; li++) {
+        const layer = curLayers[li]
+        const lModel = MODELS[layer.modelName] || MODELS['Chromatic']
+        const lRenderFn = RENDERERS[lModel?.renderer] || renderChromatic
+        const lShape = computeShape(chroma, mfcc, complexity, symmetry,
+          lModel?.shape_strategy?.vertex_count || 720,
+          lModel?.shape_strategy?.organic_distortion !== false)
+
+        // Render layer to offscreen (includes its own background)
+        offCtx.clearRect(0, 0, cssW, cssH)
+        lRenderFn(offCtx, cssW, cssH, activeChroma, lModel, mood, lShape, beatLum, opts)
+
+        // Composite: first layer with source-over, additional layers with screen
         ctx.globalAlpha = num(layer.opacity, 1)
-        ctx.globalCompositeOperation = layer.blendMode || 'source-over'
-        ctx.drawImage(layerCanvases[li].canvas, 0, 0, cssW, cssH)
+        ctx.globalCompositeOperation = li === 0 ? 'source-over' : 'screen'
+        ctx.drawImage(offscreen, 0, 0)
       }
+
       ctx.globalAlpha = 1
       ctx.globalCompositeOperation = 'source-over'
       ctx.restore()
