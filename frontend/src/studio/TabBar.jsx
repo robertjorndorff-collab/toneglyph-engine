@@ -19,7 +19,7 @@ export default function TabBar() {
 
   return (
     <div className="tab-bar">
-      <img src="/logo.png" alt="ToneGlyph" className="tab-logo" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })} />
+      <img src="/icon.png" alt="ToneGlyph" className="tab-logo" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })} />
       {tabs.map((tab, idx) => {
         const isActive = tab.id === activeTabId
         const isCompare = compareTabIds?.includes(tab.id)

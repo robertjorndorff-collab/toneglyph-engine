@@ -10,15 +10,15 @@
 /* ── Tab Bar — fixed top strip ───────────────────────────────────── */
 
 .tab-bar {
-  flex-shrink: 0; height: 40px; display: flex; align-items: center; gap: 2px;
+  flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 2px;
   background: #0a0e1a; border-bottom: 1px solid var(--border);
-  padding: 2px 12px 0; overflow-x: auto; overflow-y: hidden;
+  padding: 2px 16px 0; overflow-x: auto; overflow-y: hidden;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 .tab {
-  display: flex; align-items: center; gap: 5px; padding: 5px 10px;
+  display: flex; align-items: center; gap: 6px; padding: 8px 14px;
   cursor: pointer; border-radius: 5px 5px 0 0;
-  font-family: var(--mono); font-size: 0.625rem; color: var(--text);
+  font-family: var(--mono); font-size: 0.75rem; color: var(--text);
   border: 1px solid transparent; border-bottom: none;
   white-space: nowrap; user-select: none; flex-shrink: 0; transition: background 0.15s;
 }
@@ -585,7 +585,7 @@
 .home-logo { width: 360px; height: auto; margin-bottom: 16px; }
 .home-title { font-family: 'Inter', var(--sans); font-size: 1.75rem; font-weight: 300; letter-spacing: 6px; text-transform: uppercase; color: var(--text-h); opacity: 0.6; margin: 0; }
 
-.tab-logo { height: 22px; width: auto; margin-right: 10px; cursor: pointer; opacity: 0.7; transition: opacity 0.15s; flex-shrink: 0; }
+.tab-logo { height: 28px; width: auto; margin-right: 10px; cursor: pointer; opacity: 0.8; transition: opacity 0.15s; flex-shrink: 0; }
 .tab-logo:hover { opacity: 1; }
 
 /* ── Tooltips ─────────────────────────────────────────────────────── */
