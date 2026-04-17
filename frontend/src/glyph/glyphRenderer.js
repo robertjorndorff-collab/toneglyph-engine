@@ -101,7 +101,7 @@ export function renderChromatic(ctx, w, h, chroma, model, mood, shape, beatLum, 
     const og = ctx.createRadialGradient(ox, oy, 0, ox, oy, orbR)
     og.addColorStop(0, hsl(baseH, sat, 40 + mood.lightMod * 20, 0.25))
     og.addColorStop(0.6, hsl(baseH, sat * 0.8, 25 + mood.lightMod * 15, 0.12))
-    og.addColorStop(1, hsl(baseH, sat, 10, 0))
+    og.addColorStop(1, hsl(baseH, sat, 30, 0))
     ctx.fillStyle = og
     ctx.beginPath(); ctx.arc(ox, oy, orbR, 0, Math.PI * 2); ctx.fill()
   }
@@ -181,7 +181,7 @@ export function renderChromatic(ctx, w, h, chroma, model, mood, shape, beatLum, 
         const al = Math.max(0, (layerAlpha - t * 0.5) * (0.3 + energy * 0.7))
         grad.addColorStop(Math.min(t, 0.999), hsl(localH, sat, lt, al))
       }
-      grad.addColorStop(1, hsl(baseH, sat, 5, 0))
+      grad.addColorStop(1, hsl(baseH, sat, 30, 0))
 
       ctx.save()
       ctx.rotate(angle)
@@ -255,7 +255,7 @@ export function renderBertin(ctx, w, h, chroma, model, mood, shape, beatLum) {
   ctx.translate(cx, cy)
 
   // Subtle radial grid lines (Tufte: light structural ink)
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'
+  ctx.strokeStyle = `rgba(${opts?.theme==='light'?'0,0,0':'255,255,255'},0.06)`
   ctx.lineWidth = 0.5
   for (let r = 0.25; r <= 1; r += 0.25) {
     ctx.beginPath(); ctx.arc(0, 0, R * r, 0, Math.PI * 2); ctx.stroke()
@@ -661,7 +661,7 @@ export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, 
     const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, r)
     g.addColorStop(0, hsl(baseH, sat, 40 + mood.lightMod * 20 + beatB, 0.5 * energy))
     g.addColorStop(0.7, hsl(baseH, sat * 0.8, 25, 0.2 * energy))
-    g.addColorStop(1, hsl(baseH, sat, 10, 0))
+    g.addColorStop(1, hsl(baseH, sat, 30, 0))
     ctx.fillStyle = g; ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI * 2); ctx.fill()
   }
 
@@ -873,9 +873,10 @@ export function renderTwombly(ctx, w, h, chroma, model, mood, shape, beatLum, op
   const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
   const gR = Math.max(w, h) * 0.7
   const gg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, gR)
-  gg.addColorStop(0, hsl(groundH, 8, 10 + mood.lightMod * 5, 1))
-  gg.addColorStop(0.7, hsl(groundH, 8, 10 + mood.lightMod * 5, 0.8))
-  gg.addColorStop(1, hsl(groundH, 8, 10 + mood.lightMod * 5, 0))
+  const gL = opts?.theme === 'light' ? 90 : 10
+  gg.addColorStop(0, hsl(groundH, 8, gL + mood.lightMod * 5, 1))
+  gg.addColorStop(0.7, hsl(groundH, 8, gL + mood.lightMod * 5, 0.8))
+  gg.addColorStop(1, hsl(groundH, 8, gL + mood.lightMod * 5, 0))
   ctx.fillStyle = gg; ctx.fillRect(0, 0, w, h)
 
   for (let m = 0; m < nMarks; m++) {
@@ -915,9 +916,10 @@ export function renderMartin(ctx, w, h, chroma, model, mood, shape, beatLum, opt
   const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
   const mgR = Math.max(w, h) * 0.7
   const mg = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, mgR)
-  mg.addColorStop(0, hsl(groundH, 5 * mood.satMod, 6 + mood.lightMod * 3, 1))
-  mg.addColorStop(0.7, hsl(groundH, 5 * mood.satMod, 6 + mood.lightMod * 3, 0.6))
-  mg.addColorStop(1, hsl(groundH, 5 * mood.satMod, 6 + mood.lightMod * 3, 0))
+  const maL = opts?.theme === 'light' ? 94 : 6
+  mg.addColorStop(0, hsl(groundH, 5 * mood.satMod, maL + mood.lightMod * 3, 1))
+  mg.addColorStop(0.7, hsl(groundH, 5 * mood.satMod, maL + mood.lightMod * 3, 0.6))
+  mg.addColorStop(1, hsl(groundH, 5 * mood.satMod, maL + mood.lightMod * 3, 0))
   ctx.fillStyle = mg; ctx.fillRect(0, 0, w, h)
 
   // Color wash — barely visible
@@ -1052,7 +1054,7 @@ export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, o
   ctx.clearRect(0, 0, w, h)
 
   // Dense grid underlay
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)'; ctx.lineWidth = 0.5
+  ctx.strokeStyle = `rgba(${opts?.theme==='light'?'0,0,0':'255,255,255'},0.06)`; ctx.lineWidth = 0.5
   for (let x = 0; x < w; x += 30 + rand() * 20) {
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke()
   }
@@ -1107,9 +1109,10 @@ export function renderMonet(ctx, w, h, chroma, model, mood, shape, beatLum, opts
   const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
   const moR = Math.max(w, h) * 0.7
   const moG = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, moR)
-  moG.addColorStop(0, hsl(groundH, 10 * mood.satMod, 8 + mood.lightMod * 5, 1))
-  moG.addColorStop(0.7, hsl(groundH, 10 * mood.satMod, 8 + mood.lightMod * 5, 0.8))
-  moG.addColorStop(1, hsl(groundH, 10 * mood.satMod, 8 + mood.lightMod * 5, 0))
+  const mnL = opts?.theme === 'light' ? 92 : 8
+  moG.addColorStop(0, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 1))
+  moG.addColorStop(0.7, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 0.8))
+  moG.addColorStop(1, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 0))
   ctx.fillStyle = moG; ctx.fillRect(0, 0, w, h)
 
   // Tiny dappled brushstrokes

@@ -11,7 +11,7 @@
 
 .tab-bar {
   flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 0;
-  background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border);
+  background: rgba(0,0,0,0.06); border-bottom: 1px solid var(--border);
   padding: 2px 16px 0;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
@@ -197,7 +197,7 @@
 /* ── Tuning Panel — Apple-quality right sidebar ──────────────────── */
 
 .tp {
-  width: 320px; flex-shrink: 0; background: var(--bg);
+  width: 320px; flex-shrink: 0; background: var(--bg-raised);
   border-left: 1px solid var(--border);
   transition: width 200ms ease, opacity 200ms ease;
   overflow: hidden;

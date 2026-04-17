@@ -33,7 +33,7 @@ export const BINDINGS = Object.fromEntries(
   Object.entries(bindingFiles).map(([, mod]) => { const d = mod.default || mod; return [d.name, d] })
 )
 
-export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef, zoom: zoomProp, panX: panXProp, panY: panYProp, onZoomChange }) {
+export default function GlyphCanvas({ result, modelName, layers, bindingName, glyphMode, overrides, audioRef, zoom: zoomProp, panX: panXProp, panY: panYProp, onZoomChange, theme }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
   const staticRenderRef = useRef(null)
@@ -197,7 +197,8 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       rim: num(rv['lighting.rim'], 0.5),
       rhythmic: num(result?.pillar3?.rhythmic_complexity, 0.3),
       harmonic: num(result?.pillar3?.harmonic_complexity, 0.5),
-      seed: result?.cas?.pantone_id || result?.cas?.file_hash || 'default',  // RC#2: stable seed
+      seed: result?.cas?.pantone_id || result?.cas?.file_hash || 'default',
+      theme: theme || 'dark',
     }
 
     const startTime = performance.now()
@@ -347,7 +348,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       if (animRef.current) cancelAnimationFrame(animRef.current)
       ro.disconnect()
     }
-  }, [result?.cas?.composite_hash, modelName, bindingName, glyphMode, JSON.stringify(overrides)])
+  }, [result?.cas?.composite_hash, modelName, bindingName, glyphMode, JSON.stringify(overrides), theme])
 
   // Static mode: redraw when zoom/pan changes (no rAF loop to pick it up)
   useEffect(() => {

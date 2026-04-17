@@ -185,7 +185,7 @@ function HowBuiltOverlay({ result, bindingName, onClose }) {
 }
 
 function Studio() {
-  const { tabs, activeTabId, activeTab, compareTabIds, tuningOpen, workspaceMode, dispatch } = useStudio()
+  const { tabs, activeTabId, activeTab, compareTabIds, tuningOpen, workspaceMode, theme, dispatch } = useStudio()
   const audioRef = useRef(null)
   const toast = useGlobalToast()
   const [showHowBuilt, setShowHowBuilt] = useState(false)
@@ -239,7 +239,8 @@ function Studio() {
         <GlyphCanvas result={tab.result} modelName={tab.modelName} layers={tab.layers} bindingName={tab.bindingName}
           glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef}
           zoom={tab.zoom} panX={tab.panX} panY={tab.panY}
-          onZoomChange={z => dispatch({type:'TAB_UPDATE', id:tab.id, patch: z})} />
+          onZoomChange={z => dispatch({type:'TAB_UPDATE', id:tab.id, patch: z})}
+          theme={theme} />
       </GlyphErrorBoundary>
       {(enh.lyricsOn || enh.eraOn) && (
         <div className="enhancer-badges">

@@ -21,6 +21,7 @@ export default function TabBar() {
     document.documentElement.setAttribute('data-theme', next)
     localStorage.setItem('tg-theme', next)
     setThemeState(next)
+    dispatch({ type: 'SET_THEME', theme: next })
   }
 
   function setFontSize(idx) {

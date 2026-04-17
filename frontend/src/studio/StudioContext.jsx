@@ -42,6 +42,7 @@ const initialState = {
   tuningOpen: true,
   workspaceMode: 'glyph',
   presets: [],
+  theme: document.documentElement.getAttribute('data-theme') || 'dark',
 }
 
 function reducer(state, action) {
@@ -118,6 +119,8 @@ function reducer(state, action) {
       return { ...state, compareTabIds: null }
     case 'SET_WORKSPACE_MODE':
       return { ...state, workspaceMode: action.mode }
+    case 'SET_THEME':
+      return { ...state, theme: action.theme }
     case 'PRESET_SAVE': {
       if (state.presets.length >= 100) return state
       const srcTab = state.tabs.find(t => t.id === action.fromTabId)
