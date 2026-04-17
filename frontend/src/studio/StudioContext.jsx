@@ -113,6 +113,13 @@ function reducer(state, action) {
       return { ...state, compareTabIds: null }
     case 'SET_WORKSPACE_MODE':
       return { ...state, workspaceMode: action.mode }
+    case 'TAB_REATTACH_FILE': {
+      const tabs = state.tabs.map(t => {
+        if (t.id !== action.id) return t
+        return { ...t, file: action.file, fileObjectUrl: URL.createObjectURL(action.file) }
+      })
+      return { ...state, tabs }
+    }
     case 'LAYER_ADD': {
       const tabs = state.tabs.map(t => {
         if (t.id !== state.activeTabId || (t.layers?.length || 0) >= 5) return t

@@ -506,6 +506,16 @@
 
 .info-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
 
+/* ── Re-attach audio ── */
+.reattach {
+  display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px;
+  border: 1px dashed var(--border); border-radius: 6px; cursor: pointer;
+  flex-shrink: 0; transition: border-color 0.15s;
+}
+.reattach:hover { border-color: var(--accent); }
+.reattach-text { font-family: var(--mono); font-size: 0.6875rem; color: var(--text); }
+.reattach-warn { font-family: var(--mono); font-size: 0.625rem; color: #ef4444; }
+
 /* ── D MODE: detail grid ─────────────────────────────────────────── */
 
 .ws-detail { flex: 1; display: flex; overflow: hidden; }

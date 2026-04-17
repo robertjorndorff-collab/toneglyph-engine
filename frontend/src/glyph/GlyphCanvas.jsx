@@ -110,14 +110,23 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
   useEffect(() => {
     const canvas = canvasRef.current
+    console.debug('[GlyphCanvas]', {
+      chromaLen: chroma.length,
+      rvSectorHues: rv['color.sector_hues'],
+      modelName: activeLayers[0]?.modelName,
+      renderer: model?.renderer,
+      layerCount: activeLayers.length,
+      hasCanvas: !!canvas,
+      parentH: canvas?.parentElement?.clientHeight,
+    })
     if (!canvas || chroma.length !== 12) return
 
     const dpr = Math.min(window.devicePixelRatio, 2)
     const sizeRef = { w: 0, h: 0 }
     const resize = () => {
       const parent = canvas.parentElement
-      sizeRef.w = parent.clientWidth
-      sizeRef.h = parent.clientHeight || Math.min(sizeRef.w, 560)
+      sizeRef.w = parent.clientWidth || 400
+      sizeRef.h = parent.clientHeight || Math.min(sizeRef.w, 400)
       canvas.width = sizeRef.w * dpr; canvas.height = sizeRef.h * dpr
       canvas.style.width = sizeRef.w + 'px'; canvas.style.height = sizeRef.h + 'px'
     }

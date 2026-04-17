@@ -73,6 +73,42 @@ function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm }) {
   )
 }
 
+function ReattachAudio({ tab, dispatch }) {
+  const inputRef = useRef(null)
+  const [status, setStatus] = useState(null)
+
+  async function handleFile(file) {
+    if (!file) return
+    // Compute SHA-256 and compare to tab's file_hash
+    try {
+      const buf = await file.arrayBuffer()
+      const hashBuf = await crypto.subtle.digest('SHA-256', buf)
+      const hash = Array.from(new Uint8Array(hashBuf)).map(b => b.toString(16).padStart(2, '0')).join('')
+
+      if (hash === tab.result?.file_hash) {
+        dispatch({ type: 'TAB_REATTACH_FILE', id: tab.id, file })
+        setStatus(null)
+      } else {
+        setStatus('Hash does not match — use the original file')
+      }
+    } catch {
+      // If crypto.subtle unavailable (HTTP), skip hash check and attach anyway
+      dispatch({ type: 'TAB_REATTACH_FILE', id: tab.id, file })
+    }
+  }
+
+  return (
+    <div className="reattach"
+      onDragOver={e => e.preventDefault()}
+      onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]) }}
+      onClick={() => inputRef.current?.click()}>
+      <input ref={inputRef} type="file" accept={ACCEPTED} onChange={e => { handleFile(e.target.files[0]); e.target.value = '' }} hidden />
+      <span className="reattach-text">Drop audio file to re-attach playback</span>
+      {status && <span className="reattach-warn">{status}</span>}
+    </div>
+  )
+}
+
 function CompareView({ audioRef }) {
   const { tabs, compareTabIds, dispatch } = useStudio()
   if (!compareTabIds || compareTabIds.length !== 2) return null
@@ -221,7 +257,9 @@ function Studio() {
     </div>
   )
 
-  const audioEl = tab?.fileObjectUrl && <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />
+  const audioEl = tab?.fileObjectUrl
+    ? <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />
+    : (tab?.result ? <ReattachAudio tab={tab} dispatch={dispatch} /> : null)
 
   return (
     <div className="studio">
