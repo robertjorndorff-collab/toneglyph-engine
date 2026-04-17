@@ -38,9 +38,11 @@ export default function TabBar() {
           </div>
         )
       })}
-      <Tip text="New Song" shortcut="+">
-        <button className="tab-new" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })}>+</button>
-      </Tip>
+      {tabs.length > 0 && (
+        <Tip text="New Song" shortcut="+">
+          <button className="tab-new" onClick={() => dispatch({ type: 'TAB_SELECT', id: '__new__' })}>+</button>
+        </Tip>
+      )}
     </div>
   )
 }
