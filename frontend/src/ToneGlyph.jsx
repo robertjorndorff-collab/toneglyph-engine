@@ -1,54 +1,49 @@
-import { useRef, useEffect, useCallback, useState } from 'react'
+import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 
-// Standard pitch-class → hue mapping (chromatic circle)
 const PITCH_HUES = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
+const PITCH_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
 
-// ── Data validation ──────────────────────────────────────────────────
+// ── Load all models and bindings via Vite glob ───────────────────────
+
+const modelFiles = import.meta.glob('./models/*.json', { eager: true })
+const bindingFiles = import.meta.glob('./bindings/*.json', { eager: true })
+
+const MODELS = Object.fromEntries(
+  Object.entries(modelFiles).map(([path, mod]) => {
+    const d = mod.default || mod
+    return [d.name, d]
+  })
+)
+const BINDINGS = Object.fromEntries(
+  Object.entries(bindingFiles).map(([path, mod]) => {
+    const d = mod.default || mod
+    return [d.name, d]
+  })
+)
+
+// ── Helpers ──────────────────────────────────────────────────────────
 
 function num(v, fb = 0) { const n = Number(v); return Number.isFinite(n) ? n : fb }
-function arr(v, fb = []) { return Array.isArray(v) ? v : fb }
+function arr(v) { return Array.isArray(v) ? v : [] }
 
-function safeData(result) {
-  if (!result) return null
-  const cas = result.cas || {}
-  const p1 = result.pillar1 || {}
-  const p3 = result.pillar3 || {}
-  const p4 = result.pillar4 || {}
-  const p5 = result.pillar5 || {}
-  const geo = cas.geometry || {}
-  const lighting = cas.lighting || {}
-  const motion = cas.motion || {}
-  const beatSync = cas.beat_sync || {}
-
-  const chromaMean = arr(p3.chroma?.mean).map(v => num(v))
-  if (chromaMean.length !== 12) return null
-
-  return {
-    chromaMean,
-    chromaBeatSync: arr(p3.chroma?.beat_sync),
-    mfccMean: arr(p3.mfcc?.mean).map(v => num(v)),
-    tempoBpm: num(p3.tempo?.bpm, 120),
-    genrePosition: p1.genre_position || '',
-    eraAlignment: p1.era_alignment || '',
-    noveltyScore: num(p5.novelty_score, 0.5),
-    hiddenComplexity: num(p4.hidden_complexity_score, 0.5),
-    shapeComplexity: num(geo.shape_complexity, 0.5),
-    shapeSymmetry: num(geo.shape_symmetry, 0.5),
-    emissivePower: num(lighting.emissive_power, 0.3),
-    transmission: num(lighting.transmission, 0.3),
-    rimLight: num(lighting.rim_light_intensity, 0.5),
-    spinRate: num(motion.spin_rate, 0.3),
-    pulseAmplitude: num(motion.pulse_amplitude, 0.2),
-    lumMultiplier: arr(beatSync.luminance_multiplier).filter(v => Number.isFinite(v)),
-    rgbHex: cas.rgb?.hex || '#808080',
-  }
+function resolvePath(obj, dotPath) {
+  if (!obj || !dotPath) return undefined
+  return dotPath.split('.').reduce((o, k) => o?.[k], obj)
 }
 
-// ── Mood palette ─────────────────────────────────────────────────────
+function resolveBindings(binding, result) {
+  const r = {}
+  if (!binding?.mappings) return r
+  for (const [vp, dp] of Object.entries(binding.mappings)) {
+    r[vp] = resolvePath(result, dp)
+  }
+  return r
+}
+
+// ── Mood ─────────────────────────────────────────────────────────────
 
 function getMood(genre, era) {
-  const g = genre.toLowerCase()
-  const e = era.toLowerCase()
+  const g = (genre || '').toLowerCase(), e = (era || '').toLowerCase()
   let warmth = 0, satMod = 1.0, lightMod = 0
 
   if (/folk|singer-songwriter|acoustic|country|americana/.test(g)) { warmth = 0.35; satMod = 0.85 }
@@ -57,172 +52,286 @@ function getMood(genre, era) {
   else if (/rock|hard rock|prog|metal|arena|punk|alternative/.test(g)) { warmth = 0.2; satMod = 1.15 }
   else if (/electronic|ambient|techno|idm/.test(g)) { warmth = -0.2; satMod = 1.1 }
   else if (/r&b|soul|funk|gospel/.test(g)) { warmth = 0.15; satMod = 1.05 }
+  else if (/art.?piano|art.?pop/.test(g)) { warmth = -0.05; lightMod = 0.08 }
 
-  if (/1960s|1970s|laurel canyon|singer-songwriter/.test(e)) { warmth += 0.15; lightMod += 0.05 }
+  if (/1960s|1970s|laurel canyon/.test(e)) { warmth += 0.15; lightMod += 0.05 }
   if (/19th.*century|1800s|impressionist|romantic|1888/.test(e)) { warmth -= 0.1; satMod *= 0.65; lightMod += 0.2 }
   if (/modal.*jazz|1959|kind.*blue|1950s/.test(e)) { warmth -= 0.2; satMod *= 1.05 }
-  if (/art.?piano|reinterpretation/.test(g)) { warmth -= 0.05; lightMod += 0.08 }
 
   return { warmth, satMod, lightMod }
 }
 
-// ── Shape computation ────────────────────────────────────────────────
+// ── Shape ────────────────────────────────────────────────────────────
 
-function computeShape(chromaMean, mfccMean, complexity, symmetry, nPoints) {
+function computeShape(chromaMean, mfccMean, complexity, symmetry, nPoints, organic) {
   const maxC = Math.max(...chromaMean, 0.001)
   const points = []
-
-  const nHarmonics = Math.max(2, Math.round(complexity * 8))
+  const nH = organic ? Math.max(2, Math.round(complexity * 10)) : 0
 
   for (let i = 0; i < nPoints; i++) {
     const angle = (i / nPoints) * Math.PI * 2
     const sf = (angle / (Math.PI * 2)) * 12
-    const s0 = Math.floor(sf) % 12
-    const s1 = (s0 + 1) % 12
+    const s0 = Math.floor(sf) % 12, s1 = (s0 + 1) % 12
     const bl = sf - Math.floor(sf)
     const energy = (chromaMean[s0] * (1 - bl) + chromaMean[s1] * bl) / maxC
 
-    let distortion = 0
-    for (let h = 0; h < Math.min(nHarmonics, mfccMean.length); h++) {
-      const mn = mfccMean[h] / 300
-      distortion += mn * Math.sin(angle * (h + 2) + h * 1.618) * 0.08
+    let dist = 0
+    if (organic) {
+      for (let h = 0; h < Math.min(nH, mfccMean.length); h++) {
+        dist += (mfccMean[h] / 300) * Math.sin(angle * (h + 2) + h * 1.618) * 0.06
+      }
+      dist *= (1 - symmetry * 0.7)
     }
-    distortion *= (1 - symmetry * 0.7)
 
-    const r = 0.35 + energy * 0.55 + distortion
-    points.push({ angle, r: Math.max(0.15, Math.min(1.0, r)), energy })
+    points.push({ angle, r: Math.max(0.12, Math.min(1.0, 0.30 + energy * 0.60 + dist)), energy, sector: s0 })
   }
   return points
 }
 
-// ── Rendering ────────────────────────────────────────────────────────
+// ── Chromatic renderer ───────────────────────────────────────────────
 
-function renderGlyph(ctx, w, h, data, rotation, beatLum) {
+function renderChromatic(ctx, w, h, rv, model, mood, shape, beatLum) {
   const cx = w / 2, cy = h / 2
-  const maxR = Math.min(w, h) * 0.42
-  const { chromaMean, mfccMean, shapeComplexity, shapeSymmetry,
-          noveltyScore, hiddenComplexity, emissivePower, transmission,
-          rimLight } = data
-  const mood = getMood(data.genrePosition, data.eraAlignment)
-  const maxC = Math.max(...chromaMean, 0.001)
+  const maxR = Math.min(w, h) * model.shape_strategy.base_radius
+  const chroma = arr(rv['color.sector_hues'])
+  const maxC = Math.max(...chroma, 0.001)
+  const novelty = num(rv['color.saturation'], 0.5)
+  const depth = num(rv['color.gradient_depth'], 0.5)
+  const emissive = num(rv['lighting.glow'], 0.3)
+  const rimI = num(rv['lighting.rim'], 0.5)
+  const layers = model.shape_strategy.petal_layers || 1
+  const stopsMax = model.color_strategy.gradient_stops_max || 4
 
   ctx.clearRect(0, 0, w, h)
   ctx.fillStyle = '#080c18'
   ctx.fillRect(0, 0, w, h)
 
-  const shape = computeShape(chromaMean, mfccMean, shapeComplexity, shapeSymmetry, 360)
+  // Glow backdrop
+  if (model.lighting_strategy.glow_backdrop) {
+    const glowR = maxR * (model.lighting_strategy.glow_radius_factor || 1.6)
+    const domIdx = chroma.indexOf(Math.max(...chroma))
+    const glowH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+    const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR)
+    g.addColorStop(0, `hsla(${glowH}, 40%, 30%, ${emissive * 0.25})`)
+    g.addColorStop(0.5, `hsla(${glowH}, 25%, 18%, ${emissive * 0.1})`)
+    g.addColorStop(1, 'hsla(0,0%,0%,0)')
+    ctx.fillStyle = g
+    ctx.fillRect(0, 0, w, h)
+  }
 
-  // ── Layer 1: Glow backdrop ──
-  const glowR = maxR * 1.6
-  const glowGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowR)
-  const dominantIdx = chromaMean.indexOf(Math.max(...chromaMean))
-  const glowHue = (PITCH_HUES[dominantIdx] + mood.warmth * 40 + 360) % 360
-  glowGrad.addColorStop(0, `hsla(${glowHue}, 40%, 30%, ${emissivePower * 0.25})`)
-  glowGrad.addColorStop(0.5, `hsla(${glowHue}, 30%, 20%, ${emissivePower * 0.1})`)
-  glowGrad.addColorStop(1, 'hsla(0, 0%, 0%, 0)')
-  ctx.fillStyle = glowGrad
-  ctx.fillRect(0, 0, w, h)
-
-  // ── Layer 2: Petal fills (screen blended) ──
+  // Petal layers
   ctx.save()
   ctx.translate(cx, cy)
-  ctx.rotate(rotation)
-  ctx.globalCompositeOperation = 'screen'
 
-  const baseSat = 35 + noveltyScore * 50
-  const gradientStops = Math.max(2, Math.round(hiddenComplexity * 5))
+  const baseSat = 30 + novelty * 55
 
-  for (let i = 0; i < 12; i++) {
-    const angle = (i / 12) * Math.PI * 2
-    const energy = chromaMean[i] / maxC
-    if (energy < 0.08) continue
+  for (let layer = 0; layer < layers; layer++) {
+    const layerScale = 1 - layer * 0.18
+    const layerAlpha = layer === 0 ? 0.35 : layer === 1 ? 0.7 : 0.9
+    const layerWidthMod = layer === 0 ? 1.5 : layer === 1 ? 1.0 : 0.6
 
-    const petalR = maxR * (0.25 + energy * 0.75)
-    const petalW = maxR * 0.32 * (0.5 + energy * 0.5)
-    const hue = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
-    const sat = Math.min(100, baseSat * mood.satMod)
-    const baseLight = 25 + energy * 30 + mood.lightMod * 20
-    const beatBoost = (beatLum && beatLum[i] !== undefined) ? beatLum[i] * 15 : 0
+    ctx.globalCompositeOperation = model.color_strategy.blend_mode || 'screen'
 
-    const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, petalR)
-    for (let s = 0; s <= gradientStops; s++) {
-      const t = s / gradientStops
-      const lightAtT = baseLight + beatBoost - t * 20
-      const alphaAtT = (0.85 - t * 0.6) * (0.5 + energy * 0.5) * (0.7 + transmission * 0.3)
-      grad.addColorStop(Math.min(t, 1), `hsla(${hue}, ${sat}%, ${Math.max(5, lightAtT)}%, ${Math.max(0, alphaAtT)})`)
+    for (let i = 0; i < 12; i++) {
+      const energy = chroma[i] / maxC
+      if (energy < 0.05) continue
+
+      const angle = (i / 12) * Math.PI * 2
+      const baseH = (PITCH_HUES[i] + mood.warmth * 40 + 360) % 360
+      const sat = Math.min(100, baseSat * mood.satMod)
+      const baseLight = 22 + energy * 32 + mood.lightMod * 22
+      const beatB = (beatLum?.[i] ?? 0.5) * 12
+
+      const petalR = maxR * (0.20 + energy * 0.80) * layerScale
+      const petalW = maxR * 0.30 * (0.4 + energy * 0.6) * layerWidthMod
+      const nStops = Math.max(3, Math.round(depth * stopsMax))
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, petalR)
+
+      for (let s = 0; s <= nStops; s++) {
+        const t = s / nStops
+        const hShift = (t - 0.5) * 8
+        const localH = (baseH + hShift + 360) % 360
+        const lt = Math.max(5, baseLight + beatB - t * 25)
+        const al = Math.max(0, (layerAlpha - t * 0.55) * (0.4 + energy * 0.6))
+        grad.addColorStop(Math.min(t, 0.999), `hsla(${localH},${sat}%,${lt}%,${al})`)
+      }
+      grad.addColorStop(1, `hsla(${baseH},${sat}%,5%,0)`)
+
+      ctx.save()
+      ctx.rotate(angle)
+      ctx.beginPath()
+      ctx.ellipse(0, -petalR * 0.35, petalW, petalR * 0.85, 0, 0, Math.PI * 2)
+      ctx.fillStyle = grad
+      ctx.fill()
+      ctx.restore()
     }
-    grad.addColorStop(1, `hsla(${hue}, ${sat}%, 5%, 0)`)
-
-    ctx.save()
-    ctx.rotate(angle)
-    ctx.beginPath()
-    ctx.ellipse(0, -petalR * 0.35, petalW, petalR * 0.85, 0, 0, Math.PI * 2)
-    ctx.fillStyle = grad
-    ctx.fill()
-    ctx.restore()
   }
-
   ctx.globalCompositeOperation = 'source-over'
 
-  // ── Layer 3: Organic outline ──
-  ctx.beginPath()
-  for (let i = 0; i <= shape.length; i++) {
-    const pt = shape[i % shape.length]
-    const r = pt.r * maxR
-    const x = Math.cos(pt.angle) * r
-    const y = Math.sin(pt.angle) * r
-    if (i === 0) ctx.moveTo(x, y)
-    else ctx.lineTo(x, y)
+  // Organic outline
+  if (model.lighting_strategy.rim_outline) {
+    const domIdx = chroma.indexOf(Math.max(...chroma))
+    const rimH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+    ctx.beginPath()
+    for (let i = 0; i <= shape.length; i++) {
+      const pt = shape[i % shape.length]
+      const x = Math.cos(pt.angle) * pt.r * maxR
+      const y = Math.sin(pt.angle) * pt.r * maxR
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+    }
+    ctx.closePath()
+    ctx.strokeStyle = `hsla(${rimH},30%,70%,${rimI * 0.35})`
+    ctx.lineWidth = 1.2
+    ctx.shadowColor = `hsla(${rimH},50%,60%,${rimI * 0.5})`
+    ctx.shadowBlur = 15
+    ctx.stroke()
+    ctx.shadowBlur = 0
   }
-  ctx.closePath()
 
-  ctx.strokeStyle = `hsla(${glowHue}, 30%, 70%, ${rimLight * 0.4})`
-  ctx.lineWidth = 1.5
-  ctx.shadowColor = `hsla(${glowHue}, 50%, 60%, ${rimLight * 0.6})`
-  ctx.shadowBlur = 12
-  ctx.stroke()
-  ctx.shadowBlur = 0
-
-  // ── Layer 4: Center bloom ──
-  const bloomR = maxR * 0.18
-  const bloom = ctx.createRadialGradient(0, 0, 0, 0, 0, bloomR)
-  bloom.addColorStop(0, `hsla(${glowHue}, 20%, 90%, 0.6)`)
-  bloom.addColorStop(0.4, `hsla(${glowHue}, 30%, 60%, 0.2)`)
-  bloom.addColorStop(1, `hsla(${glowHue}, 30%, 30%, 0)`)
-  ctx.fillStyle = bloom
-  ctx.beginPath()
-  ctx.arc(0, 0, bloomR, 0, Math.PI * 2)
-  ctx.fill()
+  // Center bloom
+  if (model.lighting_strategy.center_bloom) {
+    const domIdx = chroma.indexOf(Math.max(...chroma))
+    const bH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+    const bR = maxR * 0.15
+    const bg = ctx.createRadialGradient(0, 0, 0, 0, 0, bR)
+    bg.addColorStop(0, `hsla(${bH},20%,90%,0.5)`)
+    bg.addColorStop(0.4, `hsla(${bH},30%,55%,0.15)`)
+    bg.addColorStop(1, `hsla(${bH},30%,30%,0)`)
+    ctx.fillStyle = bg
+    ctx.beginPath()
+    ctx.arc(0, 0, bR, 0, Math.PI * 2)
+    ctx.fill()
+  }
 
   ctx.restore()
 }
 
+// ── Bertin renderer ──────────────────────────────────────────────────
+
+function renderBertin(ctx, w, h, rv, model, shape, beatLum) {
+  const cx = w / 2, cy = h / 2
+  const maxR = Math.min(w, h) * model.shape_strategy.base_radius
+  const chroma = arr(rv['color.sector_hues'])
+  const maxC = Math.max(...chroma, 0.001)
+
+  const domIdx = chroma.indexOf(Math.max(...chroma))
+  const baseHue = PITCH_HUES[domIdx]
+
+  ctx.clearRect(0, 0, w, h)
+  ctx.fillStyle = '#080c18'
+  ctx.fillRect(0, 0, w, h)
+
+  ctx.save()
+  ctx.translate(cx, cy)
+  ctx.globalCompositeOperation = 'source-over'
+
+  for (let i = 0; i < 12; i++) {
+    const energy = chroma[i] / maxC
+    const angle0 = (i / 12) * Math.PI * 2 - Math.PI / 12
+    const angle1 = ((i + 1) / 12) * Math.PI * 2 - Math.PI / 12
+    const r = maxR * (0.15 + energy * 0.85)
+    const light = 20 + energy * 50 + ((beatLum?.[i] ?? 0.5) * 10)
+
+    ctx.beginPath()
+    ctx.moveTo(0, 0)
+    ctx.arc(0, 0, r, angle0, angle1)
+    ctx.closePath()
+    ctx.fillStyle = `hsla(${baseHue},30%,${light}%,${0.4 + energy * 0.5})`
+    ctx.fill()
+    ctx.strokeStyle = `hsla(${baseHue},20%,60%,0.3)`
+    ctx.lineWidth = 0.5
+    ctx.stroke()
+  }
+
+  // Rim
+  if (model.lighting_strategy.rim_outline) {
+    ctx.beginPath()
+    for (let i = 0; i <= shape.length; i++) {
+      const pt = shape[i % shape.length]
+      const x = Math.cos(pt.angle) * pt.r * maxR
+      const y = Math.sin(pt.angle) * pt.r * maxR
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y)
+    }
+    ctx.closePath()
+    ctx.strokeStyle = `hsla(${baseHue},20%,60%,0.4)`
+    ctx.lineWidth = 1.5
+    ctx.stroke()
+  }
+
+  ctx.restore()
+}
+
+// ── Tooltip sector detection ─────────────────────────────────────────
+
+function getSectorAtPoint(mx, my, cx, cy, maxR) {
+  const dx = mx - cx, dy = my - cy
+  const dist = Math.sqrt(dx * dx + dy * dy)
+  if (dist > maxR * 1.3 || dist < 5) return null
+  let angle = Math.atan2(dy, dx)
+  if (angle < 0) angle += Math.PI * 2
+  return Math.floor((angle / (Math.PI * 2)) * 12) % 12
+}
+
 // ── Component ────────────────────────────────────────────────────────
 
-export default function ToneGlyph({ result, onExport }) {
+export default function ToneGlyph({ result, activeModel, activeBinding }) {
   const canvasRef = useRef(null)
   const animRef = useRef(null)
-  const dataRef = useRef(null)
   const [renderError, setRenderError] = useState(null)
+  const [tooltip, setTooltip] = useState(null)
 
-  const data = safeData(result)
-  dataRef.current = data
+  const model = MODELS[activeModel] || MODELS['Chromatic'] || Object.values(MODELS)[0]
+  const binding = BINDINGS[activeBinding] || BINDINGS['Default'] || Object.values(BINDINGS)[0]
+  const rv = useMemo(() => resolveBindings(binding, result), [binding, result])
+
+  const chroma = arr(rv['color.sector_hues'])
+  const mfcc = arr(rv['shape.mfcc']).map(v => num(v))
+  const complexity = num(rv['shape.complexity'], 0.5)
+  const symmetry = num(rv['shape.symmetry'], 0.5)
+  const mood = useMemo(
+    () => model.color_strategy.mood_tinting
+      ? getMood(rv['color.palette_warmth'], rv['color.mood_era'])
+      : { warmth: 0, satMod: 1, lightMod: 0 },
+    [model, rv['color.palette_warmth'], rv['color.mood_era']]
+  )
 
   const handleExport = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     try {
-      const url = canvas.toDataURL('image/png')
       const a = document.createElement('a')
-      a.href = url
+      a.href = canvas.toDataURL('image/png')
       a.download = `toneglyph-${result?.cas?.pantone_id || 'export'}.png`
       a.click()
     } catch (e) { console.error('[ToneGlyph] export failed:', e) }
   }, [result])
 
+  const handleMouseMove = useCallback((e) => {
+    const canvas = canvasRef.current
+    if (!canvas || chroma.length !== 12) return
+    const rect = canvas.getBoundingClientRect()
+    const mx = e.clientX - rect.left
+    const my = e.clientY - rect.top
+    const cx = rect.width / 2, cy = rect.height / 2
+    const maxR = Math.min(rect.width, rect.height) * (model.shape_strategy.base_radius || 0.42)
+    const sector = getSectorAtPoint(mx, my, cx, cy, maxR)
+    if (sector !== null) {
+      const energy = chroma[sector]
+      const maxC = Math.max(...chroma, 0.001)
+      const hue = (PITCH_HUES[sector] + mood.warmth * 40 + 360) % 360
+      setTooltip({
+        x: e.clientX - rect.left + 12,
+        y: e.clientY - rect.top - 30,
+        text: `${PITCH_NAMES[sector]} — energy ${(energy / maxC * 100).toFixed(0)}% — hue ${hue.toFixed(0)}° — Pillar 3`,
+      })
+    } else {
+      setTooltip(null)
+    }
+  }, [chroma, mood, model])
+
   useEffect(() => {
     const canvas = canvasRef.current
-    if (!canvas || !data) return
+    if (!canvas || chroma.length !== 12) return
     setRenderError(null)
 
     try {
@@ -238,59 +347,59 @@ export default function ToneGlyph({ result, onExport }) {
       if (!ctx) { setRenderError('no-ctx'); return }
       ctx.scale(dpr, dpr)
 
-      const lumArr = data.lumMultiplier
-      const hasBeatSync = lumArr.length > 0
-      const beatCount = lumArr.length || 1
-      const beatInterval = Math.max(0.05, 60 / data.tempoBpm)
-      const chromaBS = data.chromaBeatSync
+      const organic = model.shape_strategy.organic_distortion !== false
+      const nPts = model.shape_strategy.vertex_count || 720
+      const shape = computeShape(chroma, mfcc, complexity, symmetry, nPts, organic)
 
-      let rotation = 0
+      const lumArr = arr(rv['beat_sync.luminance']).filter(v => Number.isFinite(v))
+      const chromaBS = arr(rv['beat_sync.chroma'])
+      const hasBeat = lumArr.length > 0
+      const beatCount = lumArr.length || 1
+      const tempo = num(rv['beat_sync.tempo'], 120)
+      const beatInterval = Math.max(0.05, 60 / tempo)
+      const spinFactor = model.animation_strategy.rotation_speed_factor || 0
+      const pulseFactor = model.animation_strategy.pulse_factor || 0
+      const doRotate = model.animation_strategy.rotation !== false
+      const doPulse = model.animation_strategy.pulse !== false
+
       const startTime = performance.now()
+      const isChromatic = model.color_strategy.type !== 'single_hue_value'
 
       function frame() {
-        const d = dataRef.current
-        if (!d) return
-
         const t = (performance.now() - startTime) / 1000
-        rotation = t * d.spinRate * 0.15
+        const rotation = doRotate ? t * num(rv['motion.spin'], 0.3) * spinFactor : 0
+        const pulse = doPulse ? 1 + Math.sin(t * 3) * num(rv['motion.pulse'], 0.2) * pulseFactor : 1
 
-        const pulse = 1 + Math.sin(t * 3) * d.pulseAmplitude * 0.06
-
-        // Beat sync: per-sector luminance
         let beatLum = null
-        if (hasBeatSync && chromaBS.length > 0) {
-          const beatIdx = Math.floor((t / beatInterval) % beatCount)
-          const beatVec = chromaBS[beatIdx % chromaBS.length]
-          if (Array.isArray(beatVec) && beatVec.length === 12) {
-            const maxE = Math.max(...beatVec, 0.001)
-            beatLum = beatVec.map(v => num(v) / maxE)
+        if (hasBeat && chromaBS.length > 0) {
+          const bi = Math.floor((t / beatInterval) % beatCount)
+          const vec = chromaBS[bi % chromaBS.length]
+          if (Array.isArray(vec) && vec.length === 12) {
+            const mx = Math.max(...vec, 0.001)
+            beatLum = vec.map(v => num(v) / mx)
           }
         }
 
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
-
-        // Apply pulse as a slight scale transform
-        const w = cssW, h = cssH
         ctx.save()
-        ctx.translate(w / 2, h / 2)
+        ctx.translate(cssW / 2, cssH / 2)
+        ctx.rotate(rotation)
         ctx.scale(pulse, pulse)
-        ctx.translate(-w / 2, -h / 2)
+        ctx.translate(-cssW / 2, -cssH / 2)
 
-        renderGlyph(ctx, w, h, d, rotation, beatLum)
+        if (isChromatic) renderChromatic(ctx, cssW, cssH, rv, model, mood, shape, beatLum)
+        else renderBertin(ctx, cssW, cssH, rv, model, shape, beatLum)
+
         ctx.restore()
-
         animRef.current = requestAnimationFrame(frame)
       }
-
       animRef.current = requestAnimationFrame(frame)
 
       function onResize() {
         const nw = canvas.parentElement.clientWidth
         const nh = Math.min(nw, 560)
-        canvas.width = nw * dpr
-        canvas.height = nh * dpr
-        canvas.style.width = nw + 'px'
-        canvas.style.height = nh + 'px'
+        canvas.width = nw * dpr; canvas.height = nh * dpr
+        canvas.style.width = nw + 'px'; canvas.style.height = nh + 'px'
       }
       window.addEventListener('resize', onResize)
 
@@ -299,17 +408,17 @@ export default function ToneGlyph({ result, onExport }) {
         window.removeEventListener('resize', onResize)
       }
     } catch (e) {
-      console.error('[ToneGlyph] render init failed:', e)
+      console.error('[ToneGlyph] render error:', e)
       setRenderError('crash')
     }
-  }, [result?.cas?.composite_hash])
+  }, [result?.cas?.composite_hash, model.name, binding.name])
 
-  if (!data) return null
+  if (chroma.length !== 12) return null
 
   if (renderError) {
     return (
       <div className="glyph-fallback">
-        <div className="fallback-swatch" style={{ background: data.rgbHex }} />
+        <div className="fallback-swatch" style={{ background: result?.cas?.rgb?.hex || '#808080' }} />
         <p className="fallback-msg">Visualization unavailable</p>
       </div>
     )
@@ -317,10 +426,17 @@ export default function ToneGlyph({ result, onExport }) {
 
   return (
     <div className="glyph-wrap">
-      <div className="glyph-canvas">
-        <canvas ref={canvasRef} />
+      <div className="glyph-canvas" style={{ position: 'relative' }}>
+        <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)} />
+        {tooltip && (
+          <div className="glyph-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>
+            {tooltip.text}
+          </div>
+        )}
       </div>
       <button className="export-btn" onClick={handleExport}>Export PNG</button>
     </div>
   )
 }
+
+export { MODELS, BINDINGS, resolveBindings }

@@ -1,0 +1,38 @@
+{
+  "name": "Chromatic",
+  "description": "Multi-color sector-based radial glyph with mood-driven palette and gradient depth. The flagship ToneGlyph visualization.",
+  "school": "ToneGlyph Custom — informed by Albers (color interaction) and Gestalt (perceptual grouping)",
+  "shape_strategy": {
+    "type": "radial_organic",
+    "base_radius": 0.42,
+    "vertex_count": 720,
+    "petal_count": 12,
+    "petal_layers": 3,
+    "organic_distortion": true
+  },
+  "color_strategy": {
+    "type": "multi_sector",
+    "sectors": 12,
+    "chromatic_circle": true,
+    "mood_tinting": true,
+    "gradient_stops_min": 4,
+    "gradient_stops_max": 8,
+    "sub_gradients": true,
+    "blend_mode": "screen"
+  },
+  "animation_strategy": {
+    "rotation": true,
+    "rotation_speed_factor": 0.15,
+    "pulse": true,
+    "pulse_factor": 0.06,
+    "beat_sync": true,
+    "sector_luminance": true
+  },
+  "lighting_strategy": {
+    "glow_backdrop": true,
+    "glow_radius_factor": 1.6,
+    "rim_outline": true,
+    "center_bloom": true,
+    "depth_layers": 3
+  }
+}

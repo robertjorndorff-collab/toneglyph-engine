@@ -1,0 +1,39 @@
+{
+  "name": "Bertin",
+  "description": "Data-forward analytical visualization. Maps pillar outputs to Bertin's 7 visual variables (position, size, shape, value, color, orientation, texture). Restrained palette, high data-ink ratio.",
+  "school": "Jacques Bertin — Semiology of Graphics (1967), Edward Tufte — data-ink maximization",
+  "shape_strategy": {
+    "type": "geometric_radial",
+    "base_radius": 0.38,
+    "vertex_count": 360,
+    "petal_count": 12,
+    "petal_layers": 1,
+    "organic_distortion": false
+  },
+  "color_strategy": {
+    "type": "single_hue_value",
+    "sectors": 12,
+    "chromatic_circle": false,
+    "mood_tinting": false,
+    "gradient_stops_min": 2,
+    "gradient_stops_max": 3,
+    "sub_gradients": false,
+    "blend_mode": "source-over",
+    "base_hue_source": "dominant_pitch"
+  },
+  "animation_strategy": {
+    "rotation": false,
+    "rotation_speed_factor": 0,
+    "pulse": false,
+    "pulse_factor": 0,
+    "beat_sync": true,
+    "sector_luminance": true
+  },
+  "lighting_strategy": {
+    "glow_backdrop": false,
+    "glow_radius_factor": 0,
+    "rim_outline": true,
+    "center_bloom": false,
+    "depth_layers": 1
+  }
+}

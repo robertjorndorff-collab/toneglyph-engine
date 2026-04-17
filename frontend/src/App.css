@@ -351,6 +351,152 @@
   letter-spacing: 1px;
 }
 
+/* ── Settings panel ──────────────────────────────────────────────── */
+
+.settings-panel {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 100;
+}
+
+.settings-toggle {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: rgba(8, 12, 24, 0.85);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(8px);
+}
+.settings-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+.settings-body {
+  margin-top: 8px;
+  background: rgba(8, 12, 24, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px;
+  min-width: 220px;
+  backdrop-filter: blur(12px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.settings-label {
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.settings-body select {
+  width: 100%;
+  padding: 6px 8px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 0.75rem;
+}
+
+.settings-hint {
+  font-size: 0.6875rem;
+  color: var(--text);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+/* ── Glyph tooltip ───────────────────────────────────────────────── */
+
+.glyph-tooltip {
+  position: absolute;
+  background: rgba(8, 12, 24, 0.92);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  color: var(--text-h);
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 50;
+  backdrop-filter: blur(8px);
+}
+
+/* ── Diagnostics ─────────────────────────────────────────────────── */
+
+.diagnostics {
+  width: 100%;
+  max-width: 560px;
+}
+
+.diag-toggle {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+.diag-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+.diag-body {
+  margin-top: 8px;
+  padding: 16px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.diag-meta {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text);
+  margin-bottom: 12px;
+}
+.diag-meta strong { color: var(--accent); }
+
+.diag-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.6875rem;
+}
+.diag-table th {
+  text-align: left;
+  font-family: var(--mono);
+  font-size: 0.625rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text);
+  padding: 4px 6px 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.diag-table td {
+  padding: 4px 6px 4px 0;
+  color: var(--text-h);
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  border-bottom: 1px solid rgba(30, 35, 51, 0.5);
+  word-break: break-word;
+}
+
 /* ── Responsive ──────────────────────────────────────────────────── */
 
 @media (max-width: 640px) {

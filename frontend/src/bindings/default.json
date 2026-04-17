@@ -1,0 +1,25 @@
+{
+  "name": "Default",
+  "description": "Standard five-pillar binding — maps every visual property to its source pillar output",
+  "mappings": {
+    "color.sector_hues": "pillar3.chroma.mean",
+    "color.saturation": "pillar5.novelty_score",
+    "color.palette_warmth": "pillar1.genre_position",
+    "color.gradient_depth": "pillar4.hidden_complexity_score",
+    "color.mood_era": "pillar1.era_alignment",
+    "shape.complexity": "cas.geometry.shape_complexity",
+    "shape.symmetry": "cas.geometry.shape_symmetry",
+    "shape.texture": "pillar3.spectral.centroid_mean",
+    "shape.mfcc": "pillar3.mfcc.mean",
+    "lighting.glow": "cas.lighting.emissive_power",
+    "lighting.transmission": "cas.lighting.transmission",
+    "lighting.rim": "cas.lighting.rim_light_intensity",
+    "motion.spin": "cas.motion.spin_rate",
+    "motion.pulse": "cas.motion.pulse_amplitude",
+    "motion.flutter": "cas.motion.flutter_frequency",
+    "beat_sync.chroma": "pillar3.chroma.beat_sync",
+    "beat_sync.luminance": "cas.beat_sync.luminance_multiplier",
+    "beat_sync.tempo": "pillar3.tempo.bpm",
+    "scale.size": "pillar5.novelty_score"
+  }
+}
