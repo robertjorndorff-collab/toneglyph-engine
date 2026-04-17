@@ -37,38 +37,37 @@ export default function TuningPanel({ enhancerUI }) {
   const rv = tab?.result ? resolveBindings(binding, tab.result) : {}
   const layers = tab?.layers || []
 
-  return (
-    <div className={`tp ${tuningOpen ? 'tp-open' : 'tp-closed'}`}>
-      {!tuningOpen ? null : !tab ? (
-        <div className="tp-inner"><div className="tp-head"><span className="tp-title">Tuning</span><button className="tp-x" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button></div></div>
-      ) : (
-        <div className="tp-inner">
-          <div className="tp-head">
-            <span className="tp-title">Tuning</span>
-            <button className="tp-x" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })}>×</button>
-          </div>
+  if (!tuningOpen) return <div className="tp tp-closed" />
+  if (!tab) return <div className="tp tp-open"><div className="tp-inner"><p className="tp-empty">No song selected</p></div></div>
 
-          {/* ── LAYERS ── */}
-          <TuningSection id="layers" label="LAYERS" alwaysOpen action={
-            <div className="ts-icons">
-              {layers.length < 5 && <Tip text="Add Layer"><button className="ts-icon" onClick={() => setAddingLayer(!addingLayer)}>+</button></Tip>}
-              <Tip text="Save Preset"><button className="ts-icon" onClick={() => setSavingPreset(true)}>💾</button></Tip>
+  return (
+    <div className="tp tp-open">
+      <div className="tp-inner">
+
+        {/* ── LAYERS (with nested Binding) ── */}
+        <TuningSection id="layers" label="LAYERS" defaultOpen action={
+          <div className="ts-icons">
+            {layers.length < 5 && <Tip text="Add Layer"><button className="ts-icon" onClick={e => { e.stopPropagation(); setAddingLayer(!addingLayer) }}>+</button></Tip>}
+            <Tip text="Save Preset"><button className="ts-icon" onClick={e => { e.stopPropagation(); setSavingPreset(true) }}>
+              <svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 1h7l2 2v7a1 1 0 01-1 1H2a1 1 0 01-1-1V2a1 1 0 011-1z" stroke="currentColor" strokeWidth="1" fill="none"/><rect x="4" y="7" width="4" height="3" rx="0.5" fill="currentColor" opacity="0.4"/></svg>
+            </button></Tip>
+          </div>
+        }>
+          {addingLayer && (
+            <select className="tp-select-full" value="" autoFocus onChange={e => { if (e.target.value) { dispatch({ type: 'LAYER_ADD', modelName: e.target.value }); setAddingLayer(false) } }}>
+              <option value="">Select model…</option>
+              {modelNames.map(n => <option key={n} value={n}>{n}</option>)}
+            </select>
+          )}
+          {savingPreset && (
+            <div className="tp-save-row">
+              <input className="tp-select-full" value={presetName} onChange={e => setPresetName(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) { dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') } if (e.key === 'Escape') setSavingPreset(false) }}
+                placeholder="Preset name…" autoFocus />
+              <button className="ts-icon" onClick={() => { if (presetName.trim()) dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') }}>✓</button>
             </div>
-          }>
-            {addingLayer && (
-              <select className="tp-select-full" value="" autoFocus onChange={e => { if (e.target.value) { dispatch({ type: 'LAYER_ADD', modelName: e.target.value }); setAddingLayer(false) } }}>
-                <option value="">Select model…</option>
-                {modelNames.map(n => <option key={n} value={n}>{n}</option>)}
-              </select>
-            )}
-            {savingPreset && (
-              <div className="tp-save-row">
-                <input className="tp-select-full" value={presetName} onChange={e => setPresetName(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) { dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') } if (e.key === 'Escape') setSavingPreset(false) }}
-                  placeholder="Preset name…" autoFocus />
-                <button className="ts-icon" onClick={() => { if (presetName.trim()) dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') }}>✓</button>
-              </div>
-            )}
+          )}
+          <div className="tp-layer-list">
             {layers.map((layer, idx) => (
               <div key={layer.id} className="tp-layer-row">
                 <button className={`tp-vis ${layer.visible !== false ? 'on' : ''}`}
@@ -85,60 +84,60 @@ export default function TuningPanel({ enhancerUI }) {
                 {layers.length > 1 && <button className="ts-icon tp-rm" onClick={() => dispatch({ type: 'LAYER_REMOVE', layerId: layer.id })}>×</button>}
               </div>
             ))}
-          </TuningSection>
-
-          {/* ── PRESETS ── */}
-          <TuningSection id="presets" label={`PRESETS (${presets.length})`}>
-            <PresetsList dispatch={dispatch} tabId={tab.id} />
-          </TuningSection>
-
-          {/* ── BINDING ── */}
-          <div className="tp-binding-row">
-            <span className="ts-label">BINDING</span>
-            <select className="tp-select-full" value={tab.bindingName}
+          </div>
+          {/* Binding nested under layers */}
+          <div className="tp-grid-row" style={{ marginTop: 4 }}>
+            <span className="tp-lbl">Binding</span>
+            <select className="tp-layer-dd" value={tab.bindingName}
               onChange={e => dispatch({ type: 'TAB_UPDATE', id: tab.id, patch: { bindingName: e.target.value } })}>
               {Object.keys(BINDINGS).map(n => <option key={n} value={n}>{n}</option>)}
             </select>
+            <span className="tp-val" />
           </div>
+        </TuningSection>
 
-          {/* ── LIVE OVERRIDES ── */}
-          <TuningSection id="overrides" label="LIVE OVERRIDES" defaultOpen action={
-            <Tip text="Reset All"><button className="ts-icon ts-accent" onClick={() => dispatch({ type: 'CLEAR_OVERRIDES' })}>Reset</button></Tip>
-          }>
-            {SLIDERS.map(s => {
-              const base = typeof rv[s.key] === 'number' ? rv[s.key] : ((s.min || 0) + (s.max || 1)) / 2
-              const val = tab.overrides[s.key] ?? base
+        {/* ── PRESETS ── */}
+        <TuningSection id="presets" label={`PRESETS (${presets.length})`}>
+          <PresetsList dispatch={dispatch} tabId={tab.id} />
+        </TuningSection>
+
+        {/* ── LIVE OVERRIDES ── */}
+        <TuningSection id="overrides" label="LIVE OVERRIDES" defaultOpen action={
+          <Tip text="Reset All"><button className="ts-icon ts-accent" onClick={e => { e.stopPropagation(); dispatch({ type: 'CLEAR_OVERRIDES' }) }}>Reset</button></Tip>
+        }>
+          {SLIDERS.map(s => {
+            const base = typeof rv[s.key] === 'number' ? rv[s.key] : ((s.min || 0) + (s.max || 1)) / 2
+            const val = tab.overrides[s.key] ?? base
+            return (
+              <div key={s.key} className="tp-grid-row">
+                <span className="tp-lbl">{s.label}</span>
+                <input className="tp-slider" type="range" min={s.min || 0} max={s.max || 1} step="0.01" value={val}
+                  onChange={e => dispatch({ type: 'SET_OVERRIDE', key: s.key, value: parseFloat(e.target.value) })} />
+                <span className="tp-val">{fmt(val, 2)}</span>
+              </div>
+            )
+          })}
+        </TuningSection>
+
+        {/* ── ENHANCERS ── */}
+        {enhancerUI && <TuningSection id="enhancers" label="ENHANCERS" action={<span className="ts-badge">beta</span>}>{enhancerUI}</TuningSection>}
+
+        {/* ── PILLAR SCORES ── */}
+        {tab.result && (
+          <TuningSection id="scores" label="PILLAR SCORES">
+            {SCORES.map(({ label, fn }) => {
+              const v = fn(tab.result)
               return (
-                <div key={s.key} className="tp-grid-row">
-                  <span className="tp-lbl">{s.label}</span>
-                  <input className="tp-slider" type="range" min={s.min || 0} max={s.max || 1} step="0.01" value={val}
-                    onChange={e => dispatch({ type: 'SET_OVERRIDE', key: s.key, value: parseFloat(e.target.value) })} />
-                  <span className="tp-val">{fmt(val, 2)}</span>
+                <div key={label} className="tp-grid-row">
+                  <span className="tp-lbl">{label}</span>
+                  <div className="tp-score-track"><div className="tp-score-bar" style={{ width: `${(v || 0) * 100}%` }} /></div>
+                  <span className="tp-val">{fmt(v, 2)}</span>
                 </div>
               )
             })}
           </TuningSection>
-
-          {/* ── ENHANCERS ── */}
-          {enhancerUI && <TuningSection id="enhancers" label="ENHANCERS">{enhancerUI}</TuningSection>}
-
-          {/* ── PILLAR SCORES ── */}
-          {tab.result && (
-            <TuningSection id="scores" label="PILLAR SCORES">
-              {SCORES.map(({ label, fn }) => {
-                const v = fn(tab.result)
-                return (
-                  <div key={label} className="tp-grid-row">
-                    <span className="tp-lbl">{label}</span>
-                    <div className="tp-score-track"><div className="tp-score-bar" style={{ width: `${(v || 0) * 100}%` }} /></div>
-                    <span className="tp-val">{fmt(v, 2)}</span>
-                  </div>
-                )
-              })}
-            </TuningSection>
-          )}
-        </div>
-      )}
+        )}
+      </div>
     </div>
   )
 }

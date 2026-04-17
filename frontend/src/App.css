@@ -224,11 +224,12 @@
   display: flex; align-items: center; gap: 4px; height: 28px; cursor: pointer;
   border-bottom: 1px solid var(--border); margin-bottom: 4px; user-select: none;
 }
-.ts-arrow {
-  font-size: 8px; color: var(--text); opacity: 0.6; width: 12px; text-align: center; flex-shrink: 0;
-  transition: transform 0.15s; display: inline-block;
+.tp-chevron {
+  transition: transform 150ms ease; color: var(--text); opacity: 0.6; flex-shrink: 0;
 }
-.ts-arrow.open { transform: rotate(90deg); }
+.tp-chevron.open { transform: rotate(90deg); }
+.ts-header:hover .tp-chevron { opacity: 1; }
+.ts-header:hover { background: rgba(128,128,128,0.04); border-radius: 3px; }
 .ts-label {
   font-family: var(--mono); font-size: 11px; font-weight: 500;
   text-transform: uppercase; letter-spacing: 1px; color: var(--text); opacity: 0.7;
@@ -243,7 +244,10 @@
 }
 .ts-icon:hover { opacity: 1; color: var(--accent); }
 .ts-accent { color: var(--accent); opacity: 0.8; font-family: var(--mono); font-size: 11px; width: auto; padding: 0 4px; }
+.ts-badge { font-family: var(--mono); font-size: 9px; color: var(--accent); opacity: 0.5; }
 .ts-body { padding: 4px 0; }
+
+.tp-layer-list { max-height: 180px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
 
 /* ── 3-column grid row (Adobe standard) ── */
 
@@ -313,14 +317,7 @@
 .tp-save-row { display: flex; gap: 4px; align-items: center; height: 28px; margin-bottom: 4px; }
 .tp-save-row .tp-select-full { flex: 1; }
 
-/* ── Binding row ── */
-
-.tp-binding-row {
-  display: flex; align-items: center; gap: 8px; height: 28px; margin-bottom: 12px;
-  padding-bottom: 8px; border-bottom: 1px solid var(--border);
-}
-.tp-binding-row .ts-label { font-family: var(--mono); font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px; color: var(--text); opacity: 0.7; white-space: nowrap; }
-.tp-binding-row .tp-select-full { flex: 1; }
+/* (binding row removed — nested under layers) */
 
 /* ── Score tracks ── */
 
