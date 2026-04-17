@@ -582,8 +582,8 @@
 
 /* ── Logo ─────────────────────────────────────────────────────────── */
 
-.home-logo { width: 120px; height: auto; margin-bottom: 8px; }
-.home-title { font-size: 1.5rem; font-weight: 300; letter-spacing: 4px; text-transform: uppercase; color: var(--text-h); opacity: 0.7; margin: 0; }
+.home-logo { width: 360px; height: auto; margin-bottom: 16px; }
+.home-title { font-family: 'Inter', var(--sans); font-size: 1.75rem; font-weight: 300; letter-spacing: 6px; text-transform: uppercase; color: var(--text-h); opacity: 0.6; margin: 0; }
 
 .tab-logo { height: 22px; width: auto; margin-right: 10px; cursor: pointer; opacity: 0.7; transition: opacity 0.15s; flex-shrink: 0; }
 .tab-logo:hover { opacity: 1; }
