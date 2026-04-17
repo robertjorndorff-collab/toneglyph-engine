@@ -38,7 +38,7 @@ const initialState = {
   tabs: [],
   activeTabId: null,
   compareTabIds: null,
-  tuningOpen: false,
+  tuningOpen: true,
   workspaceMode: 'glyph',
 }
 
