@@ -10,9 +10,9 @@
 /* ── Tab Bar — fixed top strip ───────────────────────────────────── */
 
 .tab-bar {
-  flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 2px;
-  background: #0a0e1a; border-bottom: 1px solid var(--border);
-  padding: 2px 16px 0; overflow-x: auto; overflow-y: hidden;
+  flex-shrink: 0; height: 52px; display: flex; align-items: center; gap: 0;
+  background: rgba(0,0,0,0.15); border-bottom: 1px solid var(--border);
+  padding: 2px 16px 0;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 .tab {
@@ -31,6 +31,19 @@
 .tab-close:hover { opacity: 1; color: #ef4444; }
 .tab-new { background: none; border: 1px dashed var(--border); color: var(--text); cursor: pointer; font-size: 0.9rem; padding: 3px 8px; border-radius: 5px 5px 0 0; margin-left: 3px; flex-shrink: 0; }
 .tab-new:hover { border-color: var(--accent); color: var(--accent); }
+
+.tab-list { display: flex; align-items: center; gap: 2px; flex: 1; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+
+.header-controls { display: flex; align-items: center; gap: 2px; flex-shrink: 0; margin-left: auto; padding-left: 12px; }
+.hc-btn {
+  background: none; border: 1px solid transparent; color: var(--text); cursor: pointer;
+  font-family: var(--mono); font-size: 0.6875rem; padding: 4px 8px; border-radius: 4px;
+  transition: all 0.15s;
+}
+.hc-btn:hover:not(:disabled) { color: var(--text-h); background: rgba(255,255,255,0.06); }
+.hc-btn:disabled { opacity: 0.25; cursor: default; }
+.hc-btn.hc-active { color: var(--accent); }
+.hc-sep { width: 1px; height: 18px; background: var(--border); margin: 0 4px; }
 
 /* ── Workspace — fills remaining height ──────────────────────────── */
 
@@ -147,7 +160,7 @@
 
 .hb-panel {
   width: 100%; max-width: 800px; max-height: 60vh;
-  background: #0d1120; border: 1px solid var(--border);
+  background: var(--bg); border: 1px solid var(--border);
   border-radius: 12px 12px 0 0; padding: 20px 24px 16px;
   display: flex; flex-direction: column;
   animation: hb-slide-up 200ms ease;
@@ -184,7 +197,7 @@
 /* ── Tuning Panel — Apple-quality right sidebar ──────────────────── */
 
 .tp {
-  width: 320px; flex-shrink: 0; background: #0b0f1c;
+  width: 320px; flex-shrink: 0; background: var(--bg);
   border-left: 1px solid var(--border);
   transition: width 200ms ease, opacity 200ms ease;
   overflow: hidden;

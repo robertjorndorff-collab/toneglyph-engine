@@ -1,6 +1,6 @@
 import { useRef, useEffect, useCallback, useState, useMemo } from 'react'
 import { PITCH_NAMES, PITCH_HUES, num, arr, resolveBindings } from '../shared/constants.js'
-import { renderChromatic, renderBertin, renderRothko, renderKlee, renderMondrian, renderAlbers, renderTufte, renderKandinsky, renderPollock, renderRiley, renderHilma, renderTwombly, renderMartin, renderCalder, renderLewitt, renderBasquiat, renderMonet, renderFrankenthaler, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
+import { getBgColor, renderChromatic, renderBertin, renderRothko, renderKlee, renderMondrian, renderAlbers, renderTufte, renderKandinsky, renderPollock, renderRiley, renderHilma, renderTwombly, renderMartin, renderCalder, renderLewitt, renderBasquiat, renderMonet, renderFrankenthaler, computeShape, getMood, getSectorAtPoint, findNearestBeat } from './glyphRenderer.js'
 
 const RENDERERS = {
   chromatic: renderChromatic,
@@ -230,7 +230,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       // Background on main canvas
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, cssW, cssH)
-      ctx.fillStyle = '#080c18'
+      ctx.fillStyle = getBgColor()
       ctx.fillRect(0, 0, cssW, cssH)
 
       // Apply zoom + pan + rotation + pulse

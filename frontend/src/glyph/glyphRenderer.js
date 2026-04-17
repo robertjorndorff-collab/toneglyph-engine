@@ -1,5 +1,14 @@
 import { PITCH_HUES, num, arr } from '../shared/constants.js'
 
+let _bgCache = null, _bgTheme = null
+export function getBgColor() {
+  const theme = document.documentElement.getAttribute('data-theme') || 'dark'
+  if (_bgTheme === theme && _bgCache) return _bgCache
+  _bgCache = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#080c18'
+  _bgTheme = theme
+  return _bgCache
+}
+
 export function getMood(genre, era) {
   const g = (genre || '').toLowerCase(), e = (era || '').toLowerCase()
   let warmth = 0, satMod = 1.0, lightMod = 0
@@ -61,7 +70,7 @@ export function renderChromatic(ctx, w, h, chroma, model, mood, shape, beatLum, 
   const harmonic = num(opts.harmonic, 0.5)
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   ctx.save()
@@ -243,7 +252,7 @@ export function renderBertin(ctx, w, h, chroma, model, mood, shape, beatLum) {
   const baseHue = (PITCH_HUES[domIdx] + mood.warmth * 20 + 360) % 360
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   ctx.save()
@@ -321,7 +330,7 @@ export function renderRothko(ctx, w, h, chroma, model, mood, shape, beatLum, opt
   const baseSat = 25 + novelty * 40
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   // Find top 3 chroma bins
@@ -393,7 +402,7 @@ export function renderKlee(ctx, w, h, chroma, model, mood, shape, beatLum, opts 
   const cellW = (w - 40) / cols, cellH = (h - 40) / rows
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   for (let r = 0; r < rows; r++) {
@@ -454,7 +463,7 @@ export function renderMondrian(ctx, w, h, chroma, model, mood, shape, beatLum, o
   const pad = 12
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   // Generate grid divisions from chroma data
@@ -508,7 +517,7 @@ export function renderAlbers(ctx, w, h, chroma, model, mood, shape, beatLum, opt
   const baseSat = 30 + novelty * 50
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   ctx.save()
@@ -551,7 +560,7 @@ export function renderTufte(ctx, w, h, chroma, model, mood, shape, beatLum) {
   const maxC = Math.max(...chroma, 0.001)
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   ctx.save()
@@ -641,7 +650,7 @@ export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, 
   const baseSat = 30 + novelty * 55
 
   ctx.clearRect(0, 0, w, h)
-  ctx.fillStyle = '#080c18'
+  ctx.fillStyle = getBgColor()
   ctx.fillRect(0, 0, w, h)
 
   // Glow
@@ -728,7 +737,7 @@ export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, op
   const baseSat = 25 + novelty * 50
   const density = 80 + num(opts.rhythmic, 0.3) * 300
 
-  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = getBgColor(); ctx.fillRect(0, 0, w, h)
 
   for (let d = 0; d < density; d++) {
     const idx = Math.floor(rand() * 12)
@@ -779,7 +788,7 @@ export function renderRiley(ctx, w, h, chroma, model, mood, shape, beatLum, opts
   const tempo = num(opts.rhythmic, 0.3)
   const freq = 8 + tempo * 30
 
-  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = getBgColor(); ctx.fillRect(0, 0, w, h)
 
   const domIdx = chroma.indexOf(Math.max(...chroma))
   const baseH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
@@ -815,7 +824,7 @@ export function renderHilma(ctx, w, h, chroma, model, mood, shape, beatLum, opts
   const depth = num(opts.depth, 0.5)
   const baseSat = 25 + novelty * 45
 
-  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = getBgColor(); ctx.fillRect(0, 0, w, h)
   ctx.save(); ctx.translate(cx, cy)
 
   // Concentric rings with petal divisions
@@ -957,7 +966,7 @@ export function renderCalder(ctx, w, h, chroma, model, mood, shape, beatLum, opt
   const rand = mulberry32(stableSeed(opts, chroma))
   const baseSat = 35 + num(opts.novelty, 0.5) * 45
 
-  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = getBgColor(); ctx.fillRect(0, 0, w, h)
 
   // Balanced asymmetric shapes
   const elements = []
@@ -1137,7 +1146,7 @@ export function renderFrankenthaler(ctx, w, h, chroma, model, mood, shape, beatL
   const novelty = num(opts.novelty, 0.5)
   const baseSat = 30 + novelty * 45
 
-  ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
+  ctx.clearRect(0, 0, w, h); ctx.fillStyle = getBgColor(); ctx.fillRect(0, 0, w, h)
 
   // Rank chroma bins by energy
   const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])

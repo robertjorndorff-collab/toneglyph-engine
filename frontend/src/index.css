@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap');
 
-:root {
+:root, [data-theme="dark"] {
   --bg: #080c18;
   --text: #e0e0e0;
   --text-h: #ffffff;
@@ -9,7 +9,18 @@
   --border: #1e2333;
   --mono: ui-monospace, Consolas, monospace;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
 
+[data-theme="light"] {
+  --bg: #f8f7f4;
+  --text: #3a3d48;
+  --text-h: #0a0c14;
+  --accent: #7c3aed;
+  --accent-secondary: #0284c7;
+  --border: #dedbd2;
+}
+
+:root {
   font: 16px/1.5 var(--sans);
   color: var(--text);
   background: var(--bg);
@@ -17,27 +28,8 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
-
-body {
-  min-height: 100vh;
-}
-
-#root {
-  width: 100%;
-  min-height: 100vh;
-}
-
-h1, h2 {
-  font-family: var(--sans);
-  color: var(--text-h);
-  font-weight: 600;
-}
-
-a {
-  color: var(--accent);
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body { min-height: 100vh; background: var(--bg); }
+#root { width: 100%; min-height: 100vh; }
+h1, h2 { font-family: var(--sans); color: var(--text-h); font-weight: 600; }
+a { color: var(--accent); }
