@@ -196,6 +196,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       rim: num(rv['lighting.rim'], 0.5),
       rhythmic: num(result?.pillar3?.rhythmic_complexity, 0.3),
       harmonic: num(result?.pillar3?.harmonic_complexity, 0.5),
+      seed: result?.cas?.pantone_id || result?.cas?.file_hash || 'default',  // RC#2: stable seed
     }
 
     const startTime = performance.now()
@@ -265,6 +266,9 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
     let lastFrameTime = performance.now()
     let smoothPulse = 1, smoothRotation = 0
+    let elapsed = 0  // RC#5: accumulate clamped dt, not wall-clock
+    const smoothedChroma = [...chroma]  // RC#3: smoothed chroma array
+    const smoothedBeatLum = getBeatLum(chroma).slice()
 
     function frame() {
       cssW = sizeRef.w; cssH = sizeRef.h
@@ -275,25 +279,38 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
       const now = performance.now()
       const dt = Math.min(0.1, (now - lastFrameTime) / 1000)
       lastFrameTime = now
-      const elapsed = (now - startTime) / 1000
+      elapsed += dt  // RC#5: no wall-clock jump on tab return
 
-      // BPM-locked pulse: fast attack, exponential decay per beat
-      const phaseInBeat = (elapsed % beatPeriod) / beatPeriod
-      const envelope = Math.exp(-phaseInBeat * 4)
+      // RC#1: raised-cosine envelope (no sawtooth discontinuity)
+      const phase = (elapsed % beatPeriod) / beatPeriod
+      const attackRatio = 0.15
+      let envelope
+      if (phase < attackRatio) {
+        envelope = phase / attackRatio
+      } else {
+        const decayPhase = (phase - attackRatio) / (1 - attackRatio)
+        envelope = 0.5 * (1 + Math.cos(decayPhase * Math.PI))
+      }
       const targetPulse = doPulse ? 1 + envelope * pulseAmp : 1
 
-      // BPM-locked rotation: one full turn per 32 beats
       const targetRotation = doRotate ? elapsed * rotationSpeed * spinMul : 0
 
-      // Smooth via exponential lerp (frame-rate independent)
-      const tau = 0.12
-      const alpha = 1 - Math.exp(-dt / tau)
-      smoothPulse += (targetPulse - smoothPulse) * alpha
-      smoothRotation = targetRotation // rotation is continuous, no lerp needed
+      // Smoothing alphas (frame-rate independent)
+      const alphaPulse = 1 - Math.exp(-dt / 0.12)
+      const alphaChroma = 1 - Math.exp(-dt / 0.25)  // RC#3: longer tau for color
 
-      const activeChroma = getActiveChroma(elapsed)
-      const beatLum = getBeatLum(activeChroma)
-      renderAllLayers(activeChroma, beatLum, smoothRotation, smoothPulse)
+      smoothPulse += (targetPulse - smoothPulse) * alphaPulse
+      smoothRotation += (targetRotation - smoothRotation) * alphaPulse  // RC#4: lerp rotation too
+
+      // RC#3: smooth chroma and beatLum toward per-beat targets
+      const targetChroma = getActiveChroma(elapsed)
+      const targetLum = getBeatLum(targetChroma)
+      for (let i = 0; i < 12; i++) {
+        smoothedChroma[i] += (targetChroma[i] - smoothedChroma[i]) * alphaChroma
+        smoothedBeatLum[i] += (targetLum[i] - smoothedBeatLum[i]) * alphaChroma
+      }
+
+      renderAllLayers(smoothedChroma, smoothedBeatLum, smoothRotation, smoothPulse)
       if (isStatic) return
       animRef.current = requestAnimationFrame(frame)
     }

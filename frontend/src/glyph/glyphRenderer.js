@@ -618,11 +618,22 @@ function chromaSeed(chroma) {
   return chroma.reduce((a, v, i) => a + Math.round(v * 1000) * (i + 1), 0) | 0
 }
 
+function hashString(s) {
+  if (typeof s !== 'string' || !s) return 42
+  let h = 2166136261
+  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619) }
+  return h | 0
+}
+
+function stableSeed(opts, chroma) {
+  return opts?.seed ? hashString(opts.seed) : chromaSeed(chroma)
+}
+
 // ── Kandinsky: asymmetric composition (NOT centered radial) ──────────
 
 export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
   const depth = num(opts.depth, 0.5)
   const emissive = num(opts.emissive, 0.3)
@@ -712,7 +723,7 @@ export function renderKandinsky(ctx, w, h, chroma, model, mood, shape, beatLum, 
 
 export function renderPollock(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
   const baseSat = 25 + novelty * 50
   const density = 80 + num(opts.rhythmic, 0.3) * 300
@@ -859,7 +870,7 @@ export function renderHilma(ctx, w, h, chroma, model, mood, shape, beatLum, opts
 
 export function renderTwombly(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const nMarks = 30 + Math.round(num(opts.rhythmic, 0.3) * 80)
   const baseSat = 15 + num(opts.novelty, 0.5) * 25
 
@@ -943,7 +954,7 @@ export function renderMartin(ctx, w, h, chroma, model, mood, shape, beatLum, opt
 
 export function renderCalder(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const baseSat = 35 + num(opts.novelty, 0.5) * 45
 
   ctx.clearRect(0, 0, w, h); ctx.fillStyle = '#080c18'; ctx.fillRect(0, 0, w, h)
@@ -1033,7 +1044,7 @@ export function renderLewitt(ctx, w, h, chroma, model, mood, shape, beatLum, opt
 
 export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
   const baseSat = 40 + novelty * 40
 
@@ -1084,7 +1095,7 @@ export function renderBasquiat(ctx, w, h, chroma, model, mood, shape, beatLum, o
 
 export function renderMonet(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
   const baseSat = 25 + novelty * 40
   const nStrokes = 400 + Math.round(num(opts.harmonic, 0.5) * 600)
@@ -1122,7 +1133,7 @@ export function renderMonet(ctx, w, h, chroma, model, mood, shape, beatLum, opts
 
 export function renderFrankenthaler(ctx, w, h, chroma, model, mood, shape, beatLum, opts = {}) {
   const maxC = Math.max(...chroma, 0.001)
-  const rand = mulberry32(chromaSeed(chroma))
+  const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
   const baseSat = 30 + novelty * 45
 
