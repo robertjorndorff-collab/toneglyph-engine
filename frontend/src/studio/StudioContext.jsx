@@ -37,6 +37,7 @@ const initialState = {
   activeTabId: null,
   compareTabIds: null,
   tuningOpen: false,
+  workspaceMode: 'glyph',
 }
 
 function reducer(state, action) {
@@ -107,6 +108,8 @@ function reducer(state, action) {
       return { ...state, tuningOpen: !state.tuningOpen }
     case 'EXIT_COMPARE':
       return { ...state, compareTabIds: null }
+    case 'SET_WORKSPACE_MODE':
+      return { ...state, workspaceMode: action.mode }
     default:
       return state
   }
