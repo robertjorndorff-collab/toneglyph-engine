@@ -220,15 +220,20 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
     function getBeatLum(ac) { const mx = Math.max(...ac, 0.001); return ac.map(v => num(v) / mx) }
 
-    // Single reusable offscreen canvas for layer compositing
+    // Oversized offscreen canvas — shapes extend beyond viewport edges
+    const OVERSCAN = 1.5
+    const offW = Math.round(cssW * OVERSCAN)
+    const offH = Math.round(cssH * OVERSCAN)
+    const offsetX = (offW - cssW) / 2
+    const offsetY = (offH - cssH) / 2
     const offscreen = document.createElement('canvas')
-    offscreen.width = cssW; offscreen.height = cssH
+    offscreen.width = offW; offscreen.height = offH
     const offCtx = offscreen.getContext('2d')
 
     function renderAllLayers(activeChroma, beatLum, rotation, pulse) {
       const curLayers = layersRef.current || activeLayers
 
-      // Background on main canvas
+      // Background on main canvas — always fills viewport, pre-transform
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0)
       ctx.clearRect(0, 0, cssW, cssH)
       ctx.fillStyle = getBgColor()
@@ -244,20 +249,20 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
 
       for (let li = 0; li < curLayers.length; li++) {
         const layer = curLayers[li]
-        const lModel = MODELS[layer.modelName] || MODELS['Chromatic']
+        const lModel = MODELS[layer.modelName] || MODELS['Frankenthaler'] || MODELS['Chromatic']
         const lRenderFn = RENDERERS[lModel?.renderer] || renderChromatic
         const lShape = computeShape(chroma, mfcc, complexity, symmetry,
           lModel?.shape_strategy?.vertex_count || 720,
           lModel?.shape_strategy?.organic_distortion !== false)
 
-        // Render layer to offscreen (includes its own background)
-        offCtx.clearRect(0, 0, cssW, cssH)
-        lRenderFn(offCtx, cssW, cssH, activeChroma, lModel, mood, lShape, beatLum, opts)
+        // Render layer to oversized offscreen (no background — just shapes)
+        offCtx.clearRect(0, 0, offW, offH)
+        lRenderFn(offCtx, offW, offH, activeChroma, lModel, mood, lShape, beatLum, opts)
 
         // Composite: first layer with source-over, additional layers with screen
         ctx.globalAlpha = num(layer.opacity, 1)
         ctx.globalCompositeOperation = li === 0 ? 'source-over' : 'screen'
-        ctx.drawImage(offscreen, 0, 0)
+        ctx.drawImage(offscreen, -offsetX, -offsetY)
       }
 
       ctx.globalAlpha = 1
@@ -274,7 +279,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     function frame() {
       cssW = sizeRef.w; cssH = sizeRef.h
       if (offscreen.width !== cssW || offscreen.height !== cssH) {
-        offscreen.width = cssW; offscreen.height = cssH
+        offscreen.width = Math.round(cssW * OVERSCAN); offscreen.height = Math.round(cssH * OVERSCAN)
       }
 
       const now = performance.now()
@@ -330,7 +335,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
     const ro = new ResizeObserver(() => {
       resize()
       cssW = sizeRef.w; cssH = sizeRef.h
-      offscreen.width = cssW; offscreen.height = cssH
+      offscreen.width = Math.round(cssW * OVERSCAN); offscreen.height = Math.round(cssH * OVERSCAN)
       if (glyphMode === 'static') {
         renderAllLayers(chroma, getBeatLum(chroma), 0, 1)
       }
