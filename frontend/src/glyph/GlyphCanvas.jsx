@@ -115,6 +115,8 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
       depth: num(rv['color.gradient_depth'], 0.5),
       emissive: num(rv['lighting.glow'], 0.3),
       rim: num(rv['lighting.rim'], 0.5),
+      rhythmic: num(result?.pillar3?.rhythmic_complexity, 0.3),
+      harmonic: num(result?.pillar3?.harmonic_complexity, 0.5),
     }
 
     const startTime = performance.now()

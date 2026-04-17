@@ -5,14 +5,14 @@
 
 /* ── Studio shell — 100vh, overflow hidden ───────────────────────── */
 
-.studio { height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+.studio { height: 100vh; display: flex; flex-direction: column; overflow: hidden; padding-top: env(safe-area-inset-top, 0); }
 
 /* ── Tab Bar — fixed top strip ───────────────────────────────────── */
 
 .tab-bar {
-  flex-shrink: 0; height: 38px; display: flex; align-items: center; gap: 2px;
+  flex-shrink: 0; height: 40px; display: flex; align-items: center; gap: 2px;
   background: #0a0e1a; border-bottom: 1px solid var(--border);
-  padding: 0 12px; overflow-x: auto; overflow-y: hidden;
+  padding: 2px 12px 0; overflow-x: auto; overflow-y: hidden;
   scrollbar-width: thin; scrollbar-color: var(--border) transparent;
 }
 .tab {
@@ -316,6 +316,55 @@
   font-family: var(--mono); font-size: 0.8125rem;
   color: var(--text-h); width: 36px; text-align: right; flex-shrink: 0;
 }
+
+/* ── Pillar detail (expandable in tuning panel) ── */
+
+.tp-pillars { }
+
+.tp-detail {
+  padding: 8px 0 12px 8px; border-left: 2px solid var(--border); margin: 4px 0 8px 8px;
+}
+
+.tp-detail-err { font-size: 0.6875rem; color: var(--text); opacity: 0.5; margin: 4px 0; }
+
+.tp-row { display: flex; align-items: baseline; gap: 6px; padding: 2px 0; font-size: 0.6875rem; }
+.tp-row-label { color: var(--text); width: 60px; flex-shrink: 0; font-family: var(--mono); font-size: 0.625rem; text-transform: uppercase; }
+.tp-row-val { color: var(--text-h); flex: 1; }
+.tp-row-val.mono { font-family: var(--mono); font-size: 0.625rem; word-break: break-all; color: var(--accent-secondary); }
+
+.tp-reasoning {
+  margin-top: 6px; padding: 6px 8px;
+  background: rgba(192,132,252,0.05); border-left: 2px solid var(--accent);
+  border-radius: 3px; font-size: 0.625rem; line-height: 1.4; color: var(--text);
+}
+
+.tp-influence {
+  display: flex; align-items: center; gap: 4px; padding: 2px 0; font-size: 0.625rem;
+}
+.tp-inf-name { flex: 1; color: var(--text-h); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-inf-w { font-family: var(--mono); color: var(--text); width: 28px; text-align: right; flex-shrink: 0; }
+
+.tp-chroma {
+  display: flex; align-items: flex-end; gap: 1px; height: 32px; margin-top: 6px;
+}
+.tp-chroma-col {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 1px; height: 100%;
+  justify-content: flex-end;
+}
+.tp-chroma-bar {
+  width: 100%; min-height: 1px;
+  background: linear-gradient(180deg, var(--accent), var(--accent-secondary));
+  border-radius: 1px 1px 0 0;
+}
+.tp-chroma-col span { font-family: var(--mono); font-size: 0.375rem; color: var(--text); }
+
+.tp-quad { margin-top: 4px; }
+.tp-quad-label {
+  font-family: var(--mono); font-size: 0.5rem; text-transform: uppercase;
+  letter-spacing: 0.5px; color: var(--accent); display: block; margin-bottom: 2px;
+}
+.tp-quad ul { list-style: none; padding: 0; margin: 0; }
+.tp-quad li { font-size: 0.625rem; color: var(--text-h); line-height: 1.3; padding: 1px 0; }
 
 /* ── Tuning toggle button ── */
 
