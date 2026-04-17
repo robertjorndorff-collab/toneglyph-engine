@@ -83,11 +83,8 @@
   display: flex; flex-direction: column; gap: 4px; flex-shrink: 0;
   padding: 6px 0; width: 100%;
 }
-.info-row-top {
+.info-row {
   display: flex; align-items: center; gap: 10px;
-}
-.info-row-bottom {
-  display: flex; align-items: center; gap: 8px;
 }
 .song-title { font-size: 0.8125rem; font-weight: 600; color: var(--text-h); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pantone-badge { font-family: var(--mono); font-size: 0.5625rem; padding: 2px 7px; border-radius: 3px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,0.5); flex-shrink: 0; }
