@@ -56,21 +56,18 @@ function WorkspaceModeSelector({ mode, setMode }) {
 
 function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm }) {
   return (
-    <div className="info-bar">
-      <div className="info-row">
-        <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
-        <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
-        <span className="hex-badge">{cas.rgb?.hex}</span>
-        <div className="info-bar-right">
-          <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
-          <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
-          <Tip text="How This Glyph Was Built"><button className="icon-btn" onClick={() => setShowHowBuilt(true)}>?</button></Tip>
-        </div>
-      </div>
-      <div className="info-row">
-        <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
-        <span className="info-sep" />
-        <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} />
+    <div className="info-row">
+      <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
+      <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
+      <span className="hex-badge">{cas.rgb?.hex}</span>
+      <span className="info-sep" />
+      <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
+      <span className="info-sep" />
+      <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} />
+      <div className="info-bar-right">
+        <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
+        <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
+        <Tip text="How This Glyph Was Built"><button className="icon-btn" onClick={() => setShowHowBuilt(true)}>?</button></Tip>
       </div>
     </div>
   )
