@@ -1,17 +1,13 @@
-import { useState, useEffect, useRef, Component } from 'react'
+import { useState, useEffect, useRef, useCallback, Component } from 'react'
 import './App.css'
-import ToneGlyph, { MODELS, BINDINGS, resolveBindings } from './ToneGlyph'
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
-const MAX_SIZE = 50 * 1024 * 1024
-const ACCEPTED = '.mp3,.wav,.flac,.m4a,.aac'
-const PITCH_NAMES = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B']
-const UPLOAD_TIMEOUT_MS = 120_000
-
-function fmt(n, digits = 2) {
-  if (n === null || n === undefined || Number.isNaN(n)) return '—'
-  return Number(n).toFixed(digits)
-}
+import { StudioProvider, useStudio } from './studio/StudioContext'
+import TabBar from './studio/TabBar'
+import GlyphCanvas from './glyph/GlyphCanvas'
+import AudioPlayer from './audio/AudioPlayer'
+import TuningPanel from './tuning/TuningPanel'
+import { CasSignature, GlyphDiagnostics, FullPillarReadout } from './panels/PillarReadout'
+import { analyzeFile } from './upload/uploadApi'
+import { API_URL, MAX_SIZE, ACCEPTED, fmt } from './shared/constants'
 
 /* ── Error Boundary ──────────────────────────────────────────────── */
 
@@ -20,243 +16,135 @@ class GlyphErrorBoundary extends Component {
   static getDerivedStateFromError(error) { return { error } }
   componentDidCatch(e, info) { console.error('[GlyphErrorBoundary]', e, info) }
   render() {
-    if (this.state.error) {
-      return (
-        <div className="glyph-fallback">
-          <div className="fallback-swatch" style={{ background: this.props.hex || '#808080' }} />
-          <p className="fallback-msg">3D visualization crashed — data readout below</p>
-        </div>
-      )
-    }
+    if (this.state.error) return (
+      <div className="glyph-fallback">
+        <div className="fallback-swatch" style={{ background: this.props.hex || '#808080' }} />
+        <p className="fallback-msg">Visualization crashed — data readout below</p>
+      </div>
+    )
     return this.props.children
   }
 }
 
 /* ── Global Toast ────────────────────────────────────────────────── */
 
-function useGlobalErrorToast() {
+function useGlobalToast() {
   const [toast, setToast] = useState(null)
   useEffect(() => {
-    function handler(event) {
-      const msg = event.reason?.message || event.message || 'Unexpected error'
-      console.error('[global]', msg)
-      setToast(msg)
-      setTimeout(() => setToast(null), 8000)
-    }
-    window.addEventListener('error', handler)
-    window.addEventListener('unhandledrejection', handler)
-    return () => { window.removeEventListener('error', handler); window.removeEventListener('unhandledrejection', handler) }
+    const h = (e) => { setToast(e.reason?.message || e.message || 'Error'); setTimeout(() => setToast(null), 8000) }
+    window.addEventListener('error', h); window.addEventListener('unhandledrejection', h)
+    return () => { window.removeEventListener('error', h); window.removeEventListener('unhandledrejection', h) }
   }, [])
   return toast
 }
 
-/* ── Settings Panel ──────────────────────────────────────────────── */
+/* ── Upload Overlay ──────────────────────────────────────────────── */
 
-function SettingsPanel({ modelName, setModelName, bindingName, setBindingName }) {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className={`settings-panel ${open ? 'open' : ''}`}>
-      <button className="settings-toggle" onClick={() => setOpen(!open)}>
-        {open ? '✕' : '⚙'}
-      </button>
-      {open && (
-        <div className="settings-body">
-          <label>
-            <span className="settings-label">Visual Model</span>
-            <select value={modelName} onChange={e => setModelName(e.target.value)}>
-              {Object.keys(MODELS).map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-          <label>
-            <span className="settings-label">Pillar Binding</span>
-            <select value={bindingName} onChange={e => setBindingName(e.target.value)}>
-              {Object.keys(BINDINGS).map(n => <option key={n} value={n}>{n}</option>)}
-            </select>
-          </label>
-          <p className="settings-hint">{MODELS[modelName]?.description}</p>
-        </div>
-      )}
-    </div>
-  )
-}
+function UploadOverlay() {
+  const { dispatch, tabs } = useStudio()
+  const [dragging, setDragging] = useState(false)
+  const inputRef = useRef(null)
 
-/* ── How This Glyph Was Built ────────────────────────────────────── */
-
-function GlyphDiagnostics({ result, modelName, bindingName }) {
-  const [open, setOpen] = useState(false)
-  const binding = BINDINGS[bindingName]
-  if (!result || !binding) return null
-
-  const rv = resolveBindings(binding, result)
-
-  function fmtVal(v) {
-    if (v === undefined || v === null) return '—'
-    if (typeof v === 'number') return Number.isFinite(v) ? v.toFixed(4) : 'NaN'
-    if (typeof v === 'string') return v.length > 60 ? v.slice(0, 57) + '…' : v
-    if (Array.isArray(v)) return `[${v.length} items]`
-    return String(v).slice(0, 40)
+  function handleFile(file) {
+    if (!file) return
+    if (file.size > MAX_SIZE) { alert('File exceeds 50MB limit'); return }
+    dispatch({ type: 'TAB_CREATE', filename: file.name, file })
+    analyzeFile(file)
+      .then(result => {
+        const tab = tabs.length > 0 ? null : undefined
+        dispatch({ type: 'TAB_UPDATE', id: 'LAST', patch: { result, uploading: false } })
+      })
+      .catch(err => {
+        dispatch({ type: 'TAB_UPDATE', id: 'LAST', patch: { error: err.message, uploading: false } })
+      })
   }
 
   return (
-    <div className="diagnostics">
-      <button className="diag-toggle" onClick={() => setOpen(!open)}>
-        {open ? 'Hide' : 'Show'}: How This Glyph Was Built
-      </button>
-      {open && (
-        <div className="diag-body">
-          <p className="diag-meta">Model: <strong>{modelName}</strong> · Binding: <strong>{bindingName}</strong></p>
-          <table className="diag-table">
-            <thead><tr><th>Visual Property</th><th>Data Source</th><th>Resolved Value</th></tr></thead>
-            <tbody>
-              {Object.entries(binding.mappings).map(([vp, dp]) => (
-                <tr key={vp}>
-                  <td>{vp}</td>
-                  <td className="muted">{dp}</td>
-                  <td>{fmtVal(rv[vp])}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
-  )
-}
-
-/* ── CAS Signature card ──────────────────────────────────────────── */
-
-function CasSignature({ cas }) {
-  if (!cas) return null
-  const { hsv = {}, rgb = {}, cmyk = {}, pantone_id, composite_hash, geometry = {} } = cas
-  return (
-    <div className="signature-card">
-      <div className="sig-color-block" style={{ background: rgb.hex || '#808080' }} />
-      <div className="sig-data">
-        <div className="sig-row"><span className="sig-label">Pantone</span><span className="sig-value">{pantone_id || '—'}</span></div>
-        <div className="sig-row"><span className="sig-label">RGB</span><span className="sig-value">{rgb.hex || '—'} <span className="muted">({rgb.r ?? '?'}, {rgb.g ?? '?'}, {rgb.b ?? '?'})</span></span></div>
-        <div className="sig-row"><span className="sig-label">CMYK</span><span className="sig-value muted">C{fmt(cmyk.c)} M{fmt(cmyk.m)} Y{fmt(cmyk.y)} K{fmt(cmyk.k)}</span></div>
-        <div className="sig-row"><span className="sig-label">HSV</span><span className="sig-value muted">{fmt(hsv.h, 0)}° S{fmt(hsv.s)} V{fmt(hsv.v)}</span></div>
-        <div className="sig-row"><span className="sig-label">Texture</span><span className="sig-value">{geometry.surface_texture || '—'}</span></div>
-        <div className="sig-row"><span className="sig-label">Hash</span><span className="sig-value hash">{composite_hash || '—'}</span></div>
+    <div className="upload-overlay"
+      onDragOver={e => { e.preventDefault(); setDragging(true) }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={e => { e.preventDefault(); setDragging(false); handleFile(e.dataTransfer.files[0]) }}
+    >
+      <div className={`dropzone full ${dragging ? 'active' : ''}`} onClick={() => inputRef.current?.click()}>
+        <input ref={inputRef} type="file" accept={ACCEPTED} onChange={e => { handleFile(e.target.files[0]); e.target.value = '' }} hidden />
+        <p className="drop-label">Drop an audio file here</p>
+        <p className="drop-hint">or click to browse — MP3, WAV, FLAC, M4A, AAC (max 50MB)</p>
       </div>
     </div>
   )
 }
 
-/* ── Pillar sub-components ───────────────────────────────────────── */
+/* ── Mode Selector ───────────────────────────────────────────────── */
 
-function Pillar1({ data, error }) {
-  if (error) return <div className="pillar-section"><h3>Pillar 1 — Zeitgeist</h3><p className="pillar-error">{error}</p></div>
-  if (!data) return null
+function ModeSelector({ mode, setMode }) {
   return (
-    <div className="pillar-section">
-      <h3>Pillar 1 — Zeitgeist</h3>
-      <table className="result-table"><tbody>
-        <tr><td>Score</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.zeitgeist_score || 0) * 100}%` }} /></div><span className="muted">{fmt(data.zeitgeist_score, 3)}</span></td></tr>
-        <tr><td>Era</td><td>{data.era_alignment || '—'}</td></tr>
-        <tr><td>Genre</td><td>{data.genre_position || '—'}</td></tr>
-      </tbody></table>
-      {data.cultural_reasoning && <p className="reasoning">{data.cultural_reasoning}</p>}
+    <div className="mode-selector">
+      {['static', 'animated', 'temporal'].map(m => (
+        <button key={m} className={`mode-btn ${mode === m ? 'active' : ''}`} onClick={() => setMode(m)}>
+          {m === 'static' ? 'Static' : m === 'animated' ? 'Animated' : 'Temporal'}
+        </button>
+      ))}
     </div>
   )
 }
 
-function Pillar2({ data, error }) {
-  if (error) return <div className="pillar-section"><h3>Pillar 2 — Artistic DNA</h3><p className="pillar-error">{error}</p></div>
-  if (!data) return null
+/* ── Compare View ────────────────────────────────────────────────── */
+
+function CompareView({ audioRef }) {
+  const { tabs, compareTabIds, dispatch } = useStudio()
+  if (!compareTabIds || compareTabIds.length !== 2) return null
+  const [aTab, bTab] = compareTabIds.map(id => tabs.find(t => t.id === id)).filter(Boolean)
+  if (!aTab || !bTab) return null
+
+  const scores = [
+    ['Zeitgeist', aTab.result?.pillar1?.zeitgeist_score, bTab.result?.pillar1?.zeitgeist_score],
+    ['DNA', aTab.result?.pillar2?.dna_score, bTab.result?.pillar2?.dna_score],
+    ['Harmonic', aTab.result?.pillar3?.harmonic_complexity, bTab.result?.pillar3?.harmonic_complexity],
+    ['Rhythmic', aTab.result?.pillar3?.rhythmic_complexity, bTab.result?.pillar3?.rhythmic_complexity],
+    ['Hidden Cx', aTab.result?.pillar4?.hidden_complexity_score, bTab.result?.pillar4?.hidden_complexity_score],
+    ['Novelty', aTab.result?.pillar5?.novelty_score, bTab.result?.pillar5?.novelty_score],
+  ]
+  scores.sort((a, b) => Math.abs((b[1] || 0) - (b[2] || 0)) - Math.abs((a[1] || 0) - (a[2] || 0)))
+
   return (
-    <div className="pillar-section">
-      <h3>Pillar 2 — Artistic DNA</h3>
-      <table className="result-table"><tbody>
-        <tr><td>DNA Score</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.dna_score || 0) * 100}%` }} /></div><span className="muted">{fmt(data.dna_score, 3)}</span></td></tr>
-      </tbody></table>
-      {data.influence_vector?.length > 0 && (
-        <div className="influence-block">
-          <p className="chroma-label">Influence Vector</p>
-          {data.influence_vector.map((inf, i) => (
-            <div key={i} className="influence-row">
-              <span className="influence-name">{inf.name}</span>
-              <div className="meter small"><div className="meter-fill" style={{ width: `${(inf.weight || 0) * 100}%` }} /></div>
-              <span className="muted">{fmt(inf.weight, 2)}</span>
-            </div>
-          ))}
+    <div className="compare-view">
+      <div className="compare-header">
+        <span>Compare Mode</span>
+        <button className="compare-exit" onClick={() => dispatch({ type: 'EXIT_COMPARE' })}>Exit</button>
+      </div>
+      <div className="compare-glyphs">
+        <div className="compare-col">
+          <GlyphErrorBoundary hex={aTab.result?.cas?.rgb?.hex}>
+            <GlyphCanvas result={aTab.result} modelName={aTab.modelName} bindingName={aTab.bindingName}
+              glyphMode={aTab.glyphMode} overrides={aTab.overrides} audioRef={audioRef} />
+          </GlyphErrorBoundary>
+          <p className="compare-name">{aTab.filename?.replace(/\.[^.]+$/, '')}</p>
         </div>
-      )}
-      {data.dna_reasoning && <p className="reasoning">{data.dna_reasoning}</p>}
-    </div>
-  )
-}
-
-function Pillar4({ data, error }) {
-  if (error) return <div className="pillar-section"><h3>Pillar 4 — Johari Window</h3><p className="pillar-error">{error}</p></div>
-  if (!data) return null
-  const q = data.johari_quadrant_assignments || {}
-  return (
-    <div className="pillar-section">
-      <h3>Pillar 4 — Johari Window</h3>
-      <table className="result-table"><tbody>
-        <tr><td>Hidden Complexity</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.hidden_complexity_score || 0) * 100}%` }} /></div><span className="muted">{fmt(data.hidden_complexity_score, 3)}</span></td></tr>
-      </tbody></table>
-      {(q.open || q.blind || q.hidden || q.unknown) && (
-        <div className="johari-grid">
-          {q.open && <div className="johari-cell"><span className="johari-label">Open</span><ul>{q.open.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
-          {q.blind && <div className="johari-cell"><span className="johari-label">Blind</span><ul>{q.blind.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
-          {q.hidden && <div className="johari-cell"><span className="johari-label">Hidden</span><ul>{q.hidden.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
-          {q.unknown && <div className="johari-cell"><span className="johari-label">Unknown</span><ul>{q.unknown.map((x, i) => <li key={i}>{x}</li>)}</ul></div>}
-        </div>
-      )}
-      {data.johari_reasoning && <p className="reasoning">{data.johari_reasoning}</p>}
-    </div>
-  )
-}
-
-function Pillar5({ data, error }) {
-  if (error) return <div className="pillar-section"><h3>Pillar 5 — IP Novelty</h3><p className="pillar-error">{error}</p></div>
-  if (!data) return null
-  return (
-    <div className="pillar-section">
-      <h3>Pillar 5 — IP Novelty</h3>
-      <table className="result-table"><tbody>
-        <tr><td>Novelty</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.novelty_score || 0) * 100}%` }} /></div><span className="muted">{fmt(data.novelty_score, 3)}</span></td></tr>
-        <tr><td>Fingerprint</td><td className="hash">{data.fingerprint_hash || '—'}</td></tr>
-      </tbody></table>
-    </div>
-  )
-}
-
-function Pillar3({ data, error }) {
-  if (error) return <div className="pillar-section"><h3>Pillar 3 — Music Theory</h3><p className="pillar-error">{error}</p></div>
-  if (!data) return null
-  const cm = data.chroma?.mean || []
-  const mx = Math.max(...cm, 1e-9)
-  return (
-    <div className="pillar-section">
-      <h3>Pillar 3 — Music Theory</h3>
-      <table className="result-table"><tbody>
-        <tr><td>Key</td><td>{data.key?.name || '—'} <span className="muted">(conf {fmt(data.key?.confidence, 3)})</span></td></tr>
-        <tr><td>Tempo</td><td>{fmt(data.tempo?.bpm, 1)} BPM <span className="muted">(stability {fmt(data.tempo?.stability, 3)})</span></td></tr>
-        <tr><td>Beats</td><td>{data.beats?.count ?? '—'}</td></tr>
-        <tr><td>Harmonic</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.harmonic_complexity || 0) * 100}%` }} /></div><span className="muted">{fmt(data.harmonic_complexity, 3)}</span></td></tr>
-        <tr><td>Rhythmic</td><td><div className="meter"><div className="meter-fill" style={{ width: `${(data.rhythmic_complexity || 0) * 100}%` }} /></div><span className="muted">{fmt(data.rhythmic_complexity, 3)}</span></td></tr>
-      </tbody></table>
-      {cm.length === 12 && (
-        <div className="chroma-block">
-          <p className="chroma-label">Chromagram</p>
-          <div className="chroma-bars">
-            {cm.map((v, i) => (
-              <div key={i} className="chroma-col">
-                <div className="chroma-bar-wrap"><div className="chroma-bar" style={{ height: `${(v / mx) * 100}%` }} /></div>
-                <span className="chroma-tick">{PITCH_NAMES[i]}</span>
+        <div className="compare-diff">
+          {scores.slice(0, 6).map(([label, a, b]) => {
+            const delta = (a || 0) - (b || 0)
+            return (
+              <div key={label} className="diff-row">
+                <span className="diff-val">{fmt(a, 2)}</span>
+                <span className={`diff-label ${Math.abs(delta) > 0.1 ? 'diff-hi' : ''}`}>{label}</span>
+                <span className="diff-val">{fmt(b, 2)}</span>
               </div>
-            ))}
-          </div>
+            )
+          })}
         </div>
-      )}
+        <div className="compare-col">
+          <GlyphErrorBoundary hex={bTab.result?.cas?.rgb?.hex}>
+            <GlyphCanvas result={bTab.result} modelName={bTab.modelName} bindingName={bTab.bindingName}
+              glyphMode={bTab.glyphMode} overrides={bTab.overrides} audioRef={audioRef} />
+          </GlyphErrorBoundary>
+          <p className="compare-name">{bTab.filename?.replace(/\.[^.]+$/, '')}</p>
+        </div>
+      </div>
     </div>
   )
 }
 
-/* ── Loading spinner ─────────────────────────────────────────────── */
+/* ── Spinner ─────────────────────────────────────────────────────── */
 
 function AnalysisSpinner() {
   const [elapsed, setElapsed] = useState(0)
@@ -268,115 +156,131 @@ function AnalysisSpinner() {
   return <div className="spinner-wrap"><div className="spinner" /><p className="spinner-text">Analyzing… {elapsed}s</p></div>
 }
 
-/* ── App ─────────────────────────────────────────────────────────── */
+/* ── Studio (main workspace) ─────────────────────────────────────── */
 
-function App() {
-  const [health, setHealth] = useState(null)
-  const [dragging, setDragging] = useState(false)
-  const [uploading, setUploading] = useState(false)
-  const [result, setResult] = useState(null)
-  const [error, setError] = useState(null)
-  const [modelName, setModelName] = useState('Chromatic')
-  const [bindingName, setBindingName] = useState('Default')
-  const inputRef = useRef(null)
-  const toast = useGlobalErrorToast()
+function Studio() {
+  const { tabs, activeTabId, activeTab, compareTabIds, tuningOpen, dispatch } = useStudio()
+  const audioRef = useRef(null)
+  const toast = useGlobalToast()
 
+  const showUpload = tabs.length === 0 || activeTabId === '__new__'
+  const showCompare = compareTabIds && compareTabIds.length === 2
+  const tab = activeTab
+  const cas = tab?.result?.cas
+
+  // Upload handler (called from tab "+" or drop)
+  const handleFile = useCallback((file) => {
+    if (!file) return
+    if (file.size > MAX_SIZE) return
+    dispatch({ type: 'TAB_CREATE', filename: file.name, file })
+  }, [dispatch])
+
+  // When a tab is created with uploading=true, fire the upload
   useEffect(() => {
-    let retryId
+    const uploading = tabs.find(t => t.uploading && t.file && !t.result && !t.error)
+    if (!uploading) return
+    analyzeFile(uploading.file)
+      .then(result => dispatch({ type: 'TAB_UPDATE', id: uploading.id, patch: { result, uploading: false } }))
+      .catch(err => dispatch({ type: 'TAB_UPDATE', id: uploading.id, patch: { error: err.message, uploading: false } }))
+  }, [tabs.map(t => t.id + t.uploading).join()])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function onKey(e) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return
+      const tabIdx = tabs.findIndex(t => t.id === activeTabId)
+      if (e.key === 'ArrowLeft' && tabIdx > 0) { e.preventDefault(); dispatch({ type: 'TAB_SELECT', id: tabs[tabIdx - 1].id }) }
+      if (e.key === 'ArrowRight' && tabIdx < tabs.length - 1) { e.preventDefault(); dispatch({ type: 'TAB_SELECT', id: tabs[tabIdx + 1].id }) }
+      if (e.key === 'c' || e.key === 'C') dispatch({ type: compareTabIds ? 'EXIT_COMPARE' : 'TAB_SELECT', id: activeTabId })
+      if (e.key === 't' || e.key === 'T') dispatch({ type: 'TOGGLE_TUNING' })
+      if (e.key === 'Escape') { dispatch({ type: 'EXIT_COMPARE' }); if (tuningOpen) dispatch({ type: 'TOGGLE_TUNING' }) }
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [tabs, activeTabId, compareTabIds, tuningOpen, dispatch])
+
+  // Health check
+  const [health, setHealth] = useState(null)
+  useEffect(() => {
+    let rid
     function check() {
-      fetch(`${API_URL}/health`).then(r => r.json()).then(d => { setHealth(d); retryId = null })
-        .catch(() => { setHealth({ status: 'unreachable' }); retryId = setTimeout(check, 5000) })
+      fetch(`${API_URL}/health`).then(r => r.json()).then(d => setHealth(d))
+        .catch(() => { setHealth({ status: 'unreachable' }); rid = setTimeout(check, 5000) })
     }
     check()
-    return () => { if (retryId) clearTimeout(retryId) }
+    return () => clearTimeout(rid)
   }, [])
 
-  async function uploadFile(file) {
-    setError(null); setResult(null)
-    if (file.size > MAX_SIZE) { setError('File exceeds 50MB limit'); return }
-    setUploading(true)
-    console.log('[ToneGlyph] uploading:', file.name, `(${(file.size / 1e6).toFixed(1)}MB)`)
-    const ctrl = new AbortController()
-    const tid = setTimeout(() => ctrl.abort(), UPLOAD_TIMEOUT_MS)
-    try {
-      const form = new FormData(); form.append('file', file)
-      const res = await fetch(`${API_URL}/api/analyze`, { method: 'POST', body: form, signal: ctrl.signal })
-      clearTimeout(tid)
-      const data = await res.json()
-      console.log('[ToneGlyph] response:', data)
-      if (!res.ok) { setError(data.detail || `Upload failed (HTTP ${res.status})`); return }
-      setResult(data)
-    } catch (e) {
-      clearTimeout(tid)
-      setError(e.name === 'AbortError' ? 'Analysis timed out — try a shorter file' : 'Could not reach backend — is it running?')
-      if (e.name !== 'AbortError') setHealth({ status: 'unreachable' })
-    } finally { setUploading(false) }
-  }
-
-  function onDrop(e) { e.preventDefault(); setDragging(false); const f = e.dataTransfer.files[0]; if (f) uploadFile(f) }
-  function onFileSelect(e) { const f = e.target.files[0]; if (f) uploadFile(f); e.target.value = '' }
-
-  const cas = result?.cas
-  const backendDown = health?.status === 'unreachable'
-
   return (
-    <div className="app">
+    <div className="studio">
       {toast && <div className="toast">{toast}</div>}
 
-      <SettingsPanel modelName={modelName} setModelName={setModelName} bindingName={bindingName} setBindingName={setBindingName} />
+      <TabBar />
 
-      {!result && (
-        <>
+      {showUpload ? (
+        <div className="studio-main upload-view">
           <p className="subtitle">Chromatic Audio Signature System</p>
-          <h1>ToneGlyph Engine</h1>
-          <div className={`status ${backendDown ? 'error' : health?.status === 'ok' ? 'ok' : ''}`}>
-            {backendDown ? 'Backend disconnected — retrying...' : health ? `Backend: ${health.status}` : 'Connecting...'}
+          <h1>ToneGlyph Studio</h1>
+          {health?.status === 'unreachable' && <div className="status error">Backend disconnected — retrying...</div>}
+          <div className="dropzone full"
+            onDragOver={e => e.preventDefault()}
+            onDrop={e => { e.preventDefault(); handleFile(e.dataTransfer.files[0]) }}
+            onClick={() => document.getElementById('file-input')?.click()}>
+            <input id="file-input" type="file" accept={ACCEPTED} onChange={e => { handleFile(e.target.files[0]); e.target.value = '' }} hidden />
+            <p className="drop-label">Drop an audio file here</p>
+            <p className="drop-hint">or click to browse — MP3, WAV, FLAC, M4A, AAC (max 50MB)</p>
           </div>
-        </>
-      )}
-
-      {!uploading && (
-        <div className={`dropzone${dragging ? ' active' : ''}${result ? ' compact' : ''}`}
-          onDragOver={e => { e.preventDefault(); setDragging(true) }}
-          onDragLeave={() => setDragging(false)} onDrop={onDrop}
-          onClick={() => inputRef.current?.click()}>
-          <input ref={inputRef} type="file" accept={ACCEPTED} onChange={onFileSelect} hidden />
-          {result ? <p className="drop-label drop-compact">Upload another file</p>
-            : <><p className="drop-label">Drop an audio file here</p><p className="drop-hint">or click to browse — MP3, WAV, FLAC, M4A, AAC (max 50MB)</p></>}
         </div>
-      )}
+      ) : showCompare ? (
+        <CompareView audioRef={audioRef} />
+      ) : (
+        <div className="studio-main">
+          <div className={`workspace ${tuningOpen ? 'with-sidebar' : ''}`}>
+            <div className="workspace-center">
+              {tab?.uploading && <AnalysisSpinner />}
+              {tab?.error && <div className="result-card error-card">{tab.error}</div>}
 
-      {uploading && <AnalysisSpinner />}
-      {error && <div className="result-card error-card">{error}</div>}
+              {cas && (
+                <>
+                  <ModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} />
+                  <GlyphErrorBoundary hex={cas.rgb?.hex}>
+                    <GlyphCanvas result={tab.result} modelName={tab.modelName} bindingName={tab.bindingName}
+                      glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
+                  </GlyphErrorBoundary>
 
-      {cas && (
-        <GlyphErrorBoundary hex={cas.rgb?.hex}>
-          <ToneGlyph result={result} activeModel={modelName} activeBinding={bindingName} />
-        </GlyphErrorBoundary>
-      )}
+                  <div className="glyph-title">
+                    <h2>{tab.filename?.replace(/\.[^.]+$/, '')}</h2>
+                    <div className="glyph-subtitle">
+                      <span className="pantone-badge" style={{ background: cas.rgb?.hex }}>{cas.pantone_id}</span>
+                      <span className="hash-small">{cas.composite_hash?.slice(0, 12)}…</span>
+                    </div>
+                  </div>
+                </>
+              )}
 
-      {cas && <CasSignature cas={cas} />}
+              {tab?.fileObjectUrl && <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />}
 
-      {result && <GlyphDiagnostics result={result} modelName={modelName} bindingName={bindingName} />}
+              {cas && <CasSignature cas={cas} />}
+              {tab?.result && <GlyphDiagnostics result={tab.result} bindingName={tab.bindingName} />}
+              {tab?.result && <FullPillarReadout result={tab.result} />}
+            </div>
 
-      {result && (
-        <div className="result-card">
-          <h2>{result.filename || 'Analysis Result'}</h2>
-          <table className="result-table"><tbody>
-            <tr><td>Duration</td><td>{result.duration}s</td></tr>
-            <tr><td>Format</td><td>{(result.format || '').toUpperCase()} · {result.channels}ch · {result.sample_rate}Hz</td></tr>
-            <tr><td>SHA-256</td><td className="hash">{result.file_hash}</td></tr>
-          </tbody></table>
-          <Pillar3 data={result.pillar3} error={result.pillar3_error} />
-          <Pillar1 data={result.pillar1} error={result.pillar1_error} />
-          <Pillar2 data={result.pillar2} error={result.pillar2_error} />
-          <Pillar4 data={result.pillar4} error={result.pillar4_error} />
-          <Pillar5 data={result.pillar5} error={result.pillar5_error} />
-          {result.cas_error && <div className="pillar-section"><h3>Color Encoding</h3><p className="pillar-error">{result.cas_error}</p></div>}
+            {tuningOpen && <TuningPanel />}
+          </div>
+
+          {!tuningOpen && tab?.result && (
+            <button className="tuning-toggle" onClick={() => dispatch({ type: 'TOGGLE_TUNING' })} title="Tuning Panel (T)">⚙</button>
+          )}
         </div>
       )}
     </div>
   )
 }
 
-export default App
+export default function App() {
+  return (
+    <StudioProvider>
+      <Studio />
+    </StudioProvider>
+  )
+}
