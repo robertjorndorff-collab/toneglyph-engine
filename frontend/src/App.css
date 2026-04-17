@@ -396,6 +396,22 @@
 }
 .tp-layer-arrow:hover:not(:disabled) { color: var(--accent); background: rgba(255,255,255,0.06); }
 .tp-layer-arrow-spacer { width: 16px; height: 16px; flex-shrink: 0; }
+
+/* ── Presets ── */
+.tp-save-preset {
+  width: 100%; padding: 8px; background: rgba(192,132,252,0.08); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--accent); cursor: pointer; font-family: var(--mono);
+  font-size: 0.6875rem; transition: border-color 0.15s;
+}
+.tp-save-preset:hover { border-color: var(--accent); }
+.tp-save-input { display: flex; gap: 4px; align-items: center; }
+.tp-save-input .tp-select { flex: 1; }
+
+.tp-presets-list { display: flex; flex-direction: column; gap: 4px; }
+.tp-preset-row { display: flex; align-items: center; gap: 4px; padding: 4px 6px; background: rgba(255,255,255,0.02); border-radius: 4px; }
+.tp-preset-info { flex: 1; min-width: 0; }
+.tp-preset-name { display: block; font-family: var(--mono); font-size: 0.6875rem; color: var(--text-h); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tp-preset-meta { display: block; font-family: var(--mono); font-size: 0.5rem; color: var(--text); opacity: 0.5; }
 .tp-layer-opacity { width: 40px; accent-color: var(--accent); height: 3px; flex-shrink: 0; }
 .tp-layer-pct { font-family: var(--mono); font-size: 0.5rem; color: var(--text); width: 20px; text-align: right; flex-shrink: 0; }
 .tp-layer-rm { background: none; border: none; color: var(--text); cursor: pointer; font-size: 0.75rem; opacity: 0.4; flex-shrink: 0; }

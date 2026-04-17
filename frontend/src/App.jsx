@@ -218,6 +218,7 @@ function Studio() {
       if (e.key==='d') dispatch({type:'SET_WORKSPACE_MODE',mode:'detail'})
       if (e.key==='s'&&!e.metaKey&&!e.ctrlKey) { e.preventDefault(); dispatch({type:'SET_WORKSPACE_MODE',mode:'split'}) }
       if (e.key==='v'&&tabs.length>=2) dispatch({type:'SET_WORKSPACE_MODE',mode:wsm==='grid'?'glyph':'grid'})
+      if (e.key==='p'&&tab) { if(!tuningOpen) dispatch({type:'TOGGLE_TUNING'}) }
       if (e.key==='e'||e.key==='E') { const c=document.querySelector('.glyph-canvas canvas'); if(c){const a=document.createElement('a');a.href=c.toDataURL('image/png');a.download='toneglyph.png';a.click()} }
       if (e.key===' '&&tab?.file) { e.preventDefault(); dispatch({type:'TAB_UPDATE',id:tab.id,patch:{result:null,error:null,uploading:true}}) }
       if ((e.key==='+'||e.key==='=')&&tab) dispatch({type:'TAB_UPDATE',id:tab.id,patch:{zoom:Math.min(4,(tab.zoom||1)*1.2)}})

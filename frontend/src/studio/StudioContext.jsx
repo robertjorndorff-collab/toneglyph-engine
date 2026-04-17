@@ -18,7 +18,7 @@ function loadPersistedState() {
         fileObjectUrl: null,
         uploading: false,
         layers: (t.layers && t.layers.length > 0) ? t.layers
-          : [{ id: crypto.randomUUID(), modelName: t.modelName || 'Chromatic', opacity: 1, visible: true }],
+          : [{ id: crypto.randomUUID(), modelName: t.modelName || 'Frankenthaler', opacity: 1, visible: true }],
       })),
     }
   } catch { return null }
@@ -40,6 +40,7 @@ const initialState = {
   compareTabIds: null,
   tuningOpen: true,
   workspaceMode: 'glyph',
+  presets: [],
 }
 
 function reducer(state, action) {
@@ -54,8 +55,8 @@ function reducer(state, action) {
         result: null,
         error: null,
         uploading: true,
-        modelName: 'Chromatic',
-        layers: [{ id: crypto.randomUUID(), modelName: 'Chromatic', opacity: 1, visible: true }],
+        modelName: 'Frankenthaler',
+        layers: [{ id: crypto.randomUUID(), modelName: 'Frankenthaler', opacity: 1, visible: true }],
         bindingName: 'Default',
         zoom: 1,
         panX: 0,
@@ -116,6 +117,56 @@ function reducer(state, action) {
       return { ...state, compareTabIds: null }
     case 'SET_WORKSPACE_MODE':
       return { ...state, workspaceMode: action.mode }
+    case 'PRESET_SAVE': {
+      if (state.presets.length >= 100) return state
+      const srcTab = state.tabs.find(t => t.id === action.fromTabId)
+      if (!srcTab) return state
+      let name = action.name
+      const existing = state.presets.filter(p => p.name.startsWith(name))
+      if (existing.length > 0) name = `${name} (${existing.length + 1})`
+      const preset = {
+        id: crypto.randomUUID(),
+        name,
+        created_at: new Date().toISOString(),
+        origin_song: { filename: srcTab.filename, file_hash: srcTab.result?.file_hash, pantone_id: srcTab.result?.cas?.pantone_id },
+        config: {
+          layers: (srcTab.layers || []).map(({ id, ...rest }) => rest),
+          bindingName: srcTab.bindingName,
+          glyphMode: srcTab.glyphMode,
+          overrides: { ...srcTab.overrides },
+          zoom: srcTab.zoom || 1, panX: srcTab.panX || 0, panY: srcTab.panY || 0,
+        },
+      }
+      return { ...state, presets: [...state.presets, preset] }
+    }
+    case 'PRESET_APPLY': {
+      const preset = state.presets.find(p => p.id === action.presetId)
+      if (!preset) return state
+      const tabs = state.tabs.map(t => {
+        if (t.id !== action.toTabId) return t
+        return {
+          ...t,
+          layers: preset.config.layers.map(l => ({ ...l, id: crypto.randomUUID() })),
+          bindingName: preset.config.bindingName,
+          glyphMode: preset.config.glyphMode,
+          overrides: { ...preset.config.overrides },
+          zoom: preset.config.zoom, panX: preset.config.panX, panY: preset.config.panY,
+        }
+      })
+      return { ...state, tabs }
+    }
+    case 'PRESET_RENAME': {
+      const presets = state.presets.map(p => p.id === action.presetId ? { ...p, name: action.name } : p)
+      return { ...state, presets }
+    }
+    case 'PRESET_DELETE': {
+      return { ...state, presets: state.presets.filter(p => p.id !== action.presetId) }
+    }
+    case 'PRESET_IMPORT': {
+      const imported = (action.presets || []).map(p => ({ ...p, id: crypto.randomUUID() }))
+      const merged = [...state.presets, ...imported].slice(0, 100)
+      return { ...state, presets: merged }
+    }
     case 'TAB_REATTACH_FILE': {
       const tabs = state.tabs.map(t => {
         if (t.id !== action.id) return t

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useStudio } from '../studio/StudioContext'
 import { MODELS, BINDINGS } from '../glyph/GlyphCanvas'
 import { fmt, PITCH_NAMES, resolveBindings } from '../shared/constants.js'
@@ -28,6 +28,8 @@ const modelNames = Object.keys(MODELS)
 export default function TuningPanel({ enhancerUI }) {
   const { activeTab, tuningOpen, dispatch } = useStudio()
   const [addingLayer, setAddingLayer] = useState(false)
+  const [savingPreset, setSavingPreset] = useState(false)
+  const [presetName, setPresetName] = useState('')
 
   const tab = activeTab
   const binding = tab ? (BINDINGS[tab.bindingName] || BINDINGS['Default']) : null
@@ -95,6 +97,28 @@ export default function TuningPanel({ enhancerUI }) {
             </div>
           </div>
 
+          {/* ── Save as Preset ── */}
+          <div className="tp-group">
+            {!savingPreset ? (
+              <button className="tp-save-preset" onClick={() => setSavingPreset(true)}>Save Configuration as Preset…</button>
+            ) : (
+              <div className="tp-save-input">
+                <input className="tp-select" value={presetName}
+                  onChange={e => setPresetName(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && presetName.trim()) { dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id }); setSavingPreset(false); setPresetName('') } }}
+                  placeholder="Preset name…" autoFocus />
+                <button className="tp-reset-btn" onClick={() => {
+                  if (presetName.trim()) dispatch({ type: 'PRESET_SAVE', name: presetName.trim(), fromTabId: tab.id })
+                  setSavingPreset(false); setPresetName('')
+                }}>Save</button>
+                <button className="tp-reset-btn" onClick={() => { setSavingPreset(false); setPresetName('') }}>Cancel</button>
+              </div>
+            )}
+          </div>
+
+          {/* ── Presets ── */}
+          <PresetsList dispatch={dispatch} tabId={tab.id} />
+
           {/* ── Binding ── */}
           <div className="tp-group">
             <h4 className="tp-group-label">Pillar Binding</h4>
@@ -146,6 +170,84 @@ export default function TuningPanel({ enhancerUI }) {
             </div>
           )}
         </div>
+      )}
+    </div>
+  )
+}
+
+function PresetsList({ dispatch, tabId }) {
+  const { presets } = useStudio()
+  const [open, setOpen] = useState(false)
+  const [renaming, setRenaming] = useState(null)
+  const [renameVal, setRenameVal] = useState('')
+  const importRef = useRef(null)
+
+  function exportPreset(p) {
+    const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob)
+    a.download = `toneglyph-preset-${p.name.replace(/\s+/g, '-').toLowerCase()}.json`; a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  function exportAll() {
+    const blob = new Blob([JSON.stringify(presets, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'toneglyph-presets.json'; a.click()
+    URL.revokeObjectURL(a.href)
+  }
+
+  function importFile(e) {
+    const file = e.target.files?.[0]; if (!file) return
+    file.text().then(text => {
+      try {
+        let data = JSON.parse(text)
+        if (!Array.isArray(data)) data = [data]
+        const valid = data.filter(p => p.config?.layers)
+        if (valid.length) dispatch({ type: 'PRESET_IMPORT', presets: valid })
+        else alert('Invalid preset file')
+      } catch { alert('Invalid JSON') }
+    })
+    e.target.value = ''
+  }
+
+  return (
+    <div className="tp-group">
+      <div className="tp-group-head">
+        <h4 className="tp-group-label" style={{ cursor: 'pointer' }} onClick={() => setOpen(!open)}>
+          {open ? '▾' : '▸'} Presets ({presets.length})
+        </h4>
+        {open && (
+          <div style={{ display: 'flex', gap: 4 }}>
+            <button className="tp-reset-btn" onClick={exportAll}>Export All</button>
+            <button className="tp-reset-btn" onClick={() => importRef.current?.click()}>Import</button>
+            <input ref={importRef} type="file" accept=".json" onChange={importFile} hidden />
+          </div>
+        )}
+      </div>
+      {open && (
+        presets.length === 0 ? (
+          <p style={{ fontSize: '0.625rem', color: 'var(--text)', opacity: 0.5 }}>No presets saved yet.</p>
+        ) : (
+          <div className="tp-presets-list">
+            {presets.map(p => (
+              <div key={p.id} className="tp-preset-row">
+                {renaming === p.id ? (
+                  <input className="tp-select" value={renameVal} onChange={e => setRenameVal(e.target.value)} autoFocus
+                    onKeyDown={e => { if (e.key === 'Enter') { dispatch({ type: 'PRESET_RENAME', presetId: p.id, name: renameVal }); setRenaming(null) } }}
+                    onBlur={() => { dispatch({ type: 'PRESET_RENAME', presetId: p.id, name: renameVal }); setRenaming(null) }} />
+                ) : (
+                  <div className="tp-preset-info">
+                    <span className="tp-preset-name">{p.name}</span>
+                    <span className="tp-preset-meta">{p.config.layers?.length || 0} layers · {p.config.bindingName}</span>
+                  </div>
+                )}
+                <button className="tp-reset-btn" onClick={() => dispatch({ type: 'PRESET_APPLY', presetId: p.id, toTabId: tabId })}>Apply</button>
+                <button className="tp-reset-btn" onClick={() => { setRenaming(p.id); setRenameVal(p.name) }}>✎</button>
+                <button className="tp-reset-btn" onClick={() => exportPreset(p)}>↓</button>
+                <button className="tp-reset-btn" style={{ color: '#ef4444' }} onClick={() => { if (confirm(`Delete "${p.name}"?`)) dispatch({ type: 'PRESET_DELETE', presetId: p.id }) }}>×</button>
+              </div>
+            ))}
+          </div>
+        )
       )}
     </div>
   )

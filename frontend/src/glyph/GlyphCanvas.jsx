@@ -49,7 +49,7 @@ export default function GlyphCanvas({ result, modelName, layers, bindingName, gl
   // Keep a live ref so the animation loop always reads current layers
   layersRef.current = activeLayers
 
-  const primaryModel = MODELS[activeLayers[0]?.modelName] || MODELS['Chromatic'] || Object.values(MODELS)[0]
+  const primaryModel = MODELS[activeLayers[0]?.modelName] || MODELS['Frankenthaler'] || MODELS['Chromatic'] || Object.values(MODELS)[0]
   const model = primaryModel
   const binding = BINDINGS[bindingName] || BINDINGS['Default'] || Object.values(BINDINGS)[0]
 
