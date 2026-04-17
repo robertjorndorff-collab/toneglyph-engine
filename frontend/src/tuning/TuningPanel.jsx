@@ -9,6 +9,7 @@ const SLIDERS = [
   { key: 'shape.symmetry', label: 'Shape Symmetry', min: 0, max: 1, step: 0.01 },
   { key: 'lighting.glow', label: 'Glow', min: 0, max: 1, step: 0.01 },
   { key: 'motion.spin', label: 'Rotation Speed', min: 0, max: 2, step: 0.01 },
+  { key: '_palette_warmth', label: 'Palette Warmth', min: -1, max: 1, step: 0.01 },
 ]
 
 export default function TuningPanel() {

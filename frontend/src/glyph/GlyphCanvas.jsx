@@ -35,14 +35,26 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
     [model, rv['color.palette_warmth'], rv['color.mood_era']]
   )
 
-  const handleExport = useCallback(() => {
+  const pantoneId = result?.cas?.pantone_id || 'export'
+
+  const exportPng = useCallback(() => {
     const canvas = canvasRef.current
     if (!canvas) return
     const a = document.createElement('a')
     a.href = canvas.toDataURL('image/png')
-    a.download = `toneglyph-${result?.cas?.pantone_id || 'export'}.png`
+    a.download = `toneglyph-${pantoneId}.png`
     a.click()
-  }, [result])
+  }, [pantoneId])
+
+  const exportJson = useCallback(() => {
+    if (!result?.cas) return
+    const blob = new Blob([JSON.stringify(result.cas, null, 2)], { type: 'application/json' })
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(blob)
+    a.download = `toneglyph-${pantoneId}.json`
+    a.click()
+    URL.revokeObjectURL(a.href)
+  }, [result, pantoneId])
 
   const handleMouseMove = useCallback((e) => {
     const canvas = canvasRef.current
@@ -187,7 +199,10 @@ export default function GlyphCanvas({ result, modelName, bindingName, glyphMode,
         <canvas ref={canvasRef} onMouseMove={handleMouseMove} onMouseLeave={() => setTooltip(null)} />
         {tooltip && <div className="glyph-tooltip" style={{ left: tooltip.x, top: tooltip.y }}>{tooltip.text}</div>}
       </div>
-      <button className="export-btn" onClick={handleExport}>Export PNG</button>
+      <div className="export-bar">
+        <button className="export-btn" onClick={exportPng}>PNG</button>
+        <button className="export-btn" onClick={exportJson}>CAS JSON</button>
+      </div>
     </div>
   )
 }

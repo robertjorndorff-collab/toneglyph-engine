@@ -20,7 +20,7 @@ export function CasSignature({ cas }) {
   )
 }
 
-export function GlyphDiagnostics({ result, bindingName }) {
+export function GlyphDiagnostics({ result, bindingName, inline }) {
   const [open, setOpen] = useState(false)
   const binding = BINDINGS[bindingName]
   if (!result || !binding) return null
