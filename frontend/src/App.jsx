@@ -12,6 +12,7 @@ import { API_URL, MAX_SIZE, ACCEPTED, fmt, resolvePath as resolvePathFn } from '
 import { BINDINGS } from './glyph/GlyphCanvas'
 import { useEnhancers, getEraFilter } from './enhancers/useEnhancers'
 import Tip from './shared/Tooltip'
+import { useRenderFeedback, RenderPill } from './shared/RenderFeedback'
 const BINDINGS_REF = BINDINGS
 
 class GlyphErrorBoundary extends Component {
@@ -189,8 +190,13 @@ function Studio() {
   const audioRef = useRef(null)
   const toast = useGlobalToast()
   const [showHowBuilt, setShowHowBuilt] = useState(false)
+  const renderFB = useRenderFeedback()
   const enh = useEnhancers(activeTab?.result, activeTab?.result?.file_hash)
   const eraFilter = enh.eraOn && enh.era && !enh.era.error ? getEraFilter(enh.era) : ''
+
+  // Trigger render feedback on state changes that cause glyph re-render
+  useEffect(() => { renderFB.notify(); const t = requestAnimationFrame(() => renderFB.done()); return () => cancelAnimationFrame(t) },
+    [JSON.stringify(tab?.layers), JSON.stringify(tab?.overrides), tab?.bindingName, tab?.glyphMode, tab?.zoom, theme])
 
   const showUpload = tabs.length === 0 || activeTabId === '__new__'
   const showCompare = compareTabIds && compareTabIds.length === 2
@@ -297,6 +303,7 @@ function Studio() {
   return (
     <div className="studio">
       {toast && <div className="toast">{toast}</div>}
+      <RenderPill visible={renderFB.isRendering} />
       <TabBar />
 
       {showUpload ? (
