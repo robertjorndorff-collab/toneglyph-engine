@@ -71,7 +71,7 @@ function WorkspaceModeSelector({ mode, setMode, tabCount }) {
   )
 }
 
-function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm, audioRef }) {
+function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm, audioRef, tabCount }) {
   return (
     <div className="info-row">
       <span className="song-title">{tab.filename?.replace(/\.[^.]+$/, '')}</span>
@@ -80,7 +80,7 @@ function SongInfoBar({ tab, cas, dispatch, setShowHowBuilt, wsm, audioRef }) {
       <span className="info-sep" />
       <GlyphModeSelector mode={tab.glyphMode} setMode={m => dispatch({ type: 'SET_GLYPH_MODE', mode: m })} audioRef={audioRef} fileObjectUrl={tab.fileObjectUrl} />
       <span className="info-sep" />
-      <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} tabCount={tabs.length} />
+      <WorkspaceModeSelector mode={wsm} setMode={m => dispatch({ type: 'SET_WORKSPACE_MODE', mode: m })} tabCount={tabCount} />
       <div className="info-bar-right">
         <Tip text="Export PNG" shortcut="E"><button className="icon-btn" onClick={() => { const c = document.querySelector('.glyph-canvas canvas'); if (c) { const a = document.createElement('a'); a.href = c.toDataURL('image/png'); a.download = 'toneglyph.png'; a.click() } }}>⬇</button></Tip>
         <Tip text="Export CAS JSON"><button className="icon-btn" onClick={() => { if (tab.result?.cas) { const b = new Blob([JSON.stringify(tab.result.cas, null, 2)], {type:'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'toneglyph.json'; a.click() } }}>{ '{' }</button></Tip>
@@ -318,7 +318,7 @@ function Studio() {
           <div className="ws-detail-main">
             <div className="ws-detail-header">
               <div className="ws-detail-glyph">{glyphEl}</div>
-              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />}
+              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />}
               {audioEl}
             </div>
             {tab?.result && <PillarGrid result={tab.result} />}
@@ -330,7 +330,7 @@ function Studio() {
         <div className="workspace ws-split">
           <div className="ws-split-left">
             <div className="ws-split-glyph">{glyphEl}</div>
-            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />}
+            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />}
             {audioEl}
           </div>
           <div className="ws-split-right">
@@ -366,7 +366,7 @@ function Studio() {
             {cas && (
               <>
                 <div className="glyph-hero">{glyphEl}</div>
-                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} />
+                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />
                 {audioEl}
               </>
             )}
