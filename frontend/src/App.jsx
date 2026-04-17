@@ -10,6 +10,7 @@ import PillarGrid from './panels/PillarGrid'
 import { analyzeFile } from './upload/uploadApi'
 import { API_URL, MAX_SIZE, ACCEPTED, fmt, resolvePath as resolvePathFn } from './shared/constants'
 import { BINDINGS } from './glyph/GlyphCanvas'
+import { useEnhancers, getEraFilter } from './enhancers/useEnhancers'
 const BINDINGS_REF = BINDINGS
 
 class GlyphErrorBoundary extends Component {
@@ -131,6 +132,8 @@ function Studio() {
   const audioRef = useRef(null)
   const toast = useGlobalToast()
   const [showHowBuilt, setShowHowBuilt] = useState(false)
+  const enh = useEnhancers(activeTab?.result, activeTab?.result?.file_hash)
+  const eraFilter = enh.eraOn && enh.era && !enh.era.error ? getEraFilter(enh.era) : ''
 
   const showUpload = tabs.length === 0 || activeTabId === '__new__'
   const showCompare = compareTabIds && compareTabIds.length === 2
@@ -169,10 +172,49 @@ function Studio() {
   useEffect(() => { let r; function c(){fetch(`${API_URL}/health`).then(r=>r.json()).then(d=>setHealth(d)).catch(()=>{setHealth({status:'unreachable'});r=setTimeout(c,5000)})}; c(); return ()=>clearTimeout(r) }, [])
 
   const glyphEl = cas && (
-    <GlyphErrorBoundary hex={cas.rgb?.hex}>
-      <GlyphCanvas result={tab.result} modelName={tab.modelName} layers={tab.layers} bindingName={tab.bindingName}
-        glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
-    </GlyphErrorBoundary>
+    <div style={{ filter: eraFilter || undefined, position: 'relative', width: '100%', height: '100%' }}>
+      <GlyphErrorBoundary hex={cas.rgb?.hex}>
+        <GlyphCanvas result={tab.result} modelName={tab.modelName} layers={tab.layers} bindingName={tab.bindingName}
+          glyphMode={tab.glyphMode} overrides={tab.overrides} audioRef={audioRef} />
+      </GlyphErrorBoundary>
+      {(enh.lyricsOn || enh.eraOn) && (
+        <div className="enhancer-badges">
+          {enh.lyricsOn && <span className="enh-badge" title={enh.lyrics?.summary || 'Loading...'}>L</span>}
+          {enh.eraOn && <span className="enh-badge" title={enh.era?.dominant_visual_movement || 'Loading...'}>E</span>}
+        </div>
+      )}
+    </div>
+  )
+
+  const enhancerUI = cas && (
+    <div className="tp-group">
+      <h4 className="tp-group-label">Enhancers <span style={{fontSize:'0.5rem',opacity:0.5}}>beta</span></h4>
+      <div className="enh-toggle">
+        <label><input type="checkbox" checked={enh.lyricsOn} onChange={e => enh.setLyricsOn(e.target.checked)} /> Lyric Themes</label>
+        {enh.lyricsOn && <span className="enh-status">{enh.lyricsLoading ? '…' : enh.lyrics?.mode || ''}</span>}
+      </div>
+      {enh.lyricsOn && enh.lyrics?.themes && (
+        <div className="enh-themes">
+          {Object.entries(enh.lyrics.themes).sort(([,a],[,b]) => b - a).slice(0, 5).map(([theme, conf]) => (
+            <span key={theme} className="enh-theme" style={{ opacity: 0.4 + conf * 0.6 }}>{theme} {(conf * 100).toFixed(0)}%</span>
+          ))}
+        </div>
+      )}
+      {enh.lyricsOn && (
+        <details className="enh-manual"><summary>paste lyrics (override)</summary>
+          <textarea rows="3" value={enh.manualLyrics} onChange={e => enh.setManualLyrics(e.target.value)} placeholder="Paste lyrics here…" />
+        </details>
+      )}
+      <div className="enh-toggle">
+        <label><input type="checkbox" checked={enh.eraOn} onChange={e => enh.setEraOn(e.target.checked)} /> Era Style</label>
+        {enh.eraOn && <span className="enh-status">{enh.eraLoading ? '…' : enh.era?.dominant_visual_movement || ''}</span>}
+      </div>
+      {enh.eraOn && enh.era && !enh.era.error && (
+        <div className="enh-era-info">
+          <span>temp {enh.era.color_temperature > 0 ? 'warm' : 'cool'} · {enh.era.texture_type} · {enh.era.edge_quality}</span>
+        </div>
+      )}
+    </div>
   )
 
   const audioEl = tab?.fileObjectUrl && <AudioPlayer ref={audioRef} src={tab.fileObjectUrl} />
@@ -206,7 +248,7 @@ function Studio() {
             </div>
             {tab?.result && <PillarGrid result={tab.result} />}
           </div>
-          <TuningPanel />
+          <TuningPanel enhancerUI={enhancerUI} />
           <div className="ws-mode-float">
             <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
           </div>
@@ -222,7 +264,7 @@ function Studio() {
           <div className="ws-split-right">
             {tab?.result && <FullPillarReadout result={tab.result} />}
           </div>
-          {tuningOpen && <TuningPanel />}
+          {tuningOpen && <TuningPanel enhancerUI={enhancerUI} />}
           <div className="ws-mode-float">
             <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />
           </div>
@@ -241,7 +283,7 @@ function Studio() {
               </>
             )}
           </div>
-          <TuningPanel />
+          <TuningPanel enhancerUI={enhancerUI} />
           {!tuningOpen && tab?.result && <button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})} title="Tuning Panel (T)">⚙</button>}
           <div className="ws-mode-float">
             <WorkspaceModeSelector mode={wsm} setMode={m=>dispatch({type:'SET_WORKSPACE_MODE',mode:m})} />

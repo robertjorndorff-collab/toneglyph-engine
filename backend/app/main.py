@@ -16,7 +16,7 @@ from pydub import AudioSegment
 # Explicit path so it works regardless of uvicorn's CWD.
 load_dotenv(Path(__file__).resolve().parent.parent / ".env")
 
-from app import color_encoding, pillar3, pillar5, pillars_llm  # noqa: E402
+from app import color_encoding, enhancers, pillar3, pillar5, pillars_llm  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s:%(name)s:%(message)s")
 logger = logging.getLogger("toneglyph")
@@ -179,3 +179,26 @@ async def analyze(file: UploadFile = File(...)):
     finally:
         if tmp_path and os.path.exists(tmp_path):
             os.unlink(tmp_path)
+
+
+@app.post("/api/enhance/lyrics")
+async def enhance_lyrics(body: dict):
+    """Lyric theme extraction. Auto-infers from metadata if no lyrics provided."""
+    return enhancers.analyze_lyrics(
+        filename=body.get("filename", ""),
+        file_hash=body.get("file_hash", ""),
+        pillar1=body.get("pillar1"),
+        pillar2=body.get("pillar2"),
+        pillar3=body.get("pillar3"),
+        lyrics=body.get("lyrics"),
+    )
+
+
+@app.post("/api/enhance/era")
+async def enhance_era(body: dict):
+    """Era visual style extraction via Claude."""
+    return enhancers.analyze_era(
+        file_hash=body.get("file_hash", ""),
+        pillar1=body.get("pillar1"),
+        pillar2=body.get("pillar2"),
+    )

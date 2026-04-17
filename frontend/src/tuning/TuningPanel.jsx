@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useStudio } from '../studio/StudioContext'
 import { MODELS, BINDINGS } from '../glyph/GlyphCanvas'
 import { fmt, PITCH_NAMES, resolveBindings } from '../shared/constants.js'
+// Enhancer UI is rendered via enhancerUI prop from parent
 
 const SLIDERS = [
   { key: 'color.saturation', label: 'Saturation', min: 0, max: 1, step: 0.01 },
@@ -24,7 +25,7 @@ const SCORES = [
 
 const modelNames = Object.keys(MODELS)
 
-export default function TuningPanel() {
+export default function TuningPanel({ enhancerUI }) {
   const { activeTab, tuningOpen, dispatch } = useStudio()
   const [addingLayer, setAddingLayer] = useState(false)
 
@@ -124,6 +125,9 @@ export default function TuningPanel() {
               )
             })}
           </div>
+
+          {/* ── Enhancers (injected from parent) ── */}
+          {enhancerUI}
 
           {/* ── Pillar Scores ── */}
           {tab.result && (

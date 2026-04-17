@@ -317,6 +317,32 @@
   color: var(--text-h); width: 36px; text-align: right; flex-shrink: 0;
 }
 
+/* ── Enhancer UI ── */
+
+.enhancer-badges { position: absolute; top: 8px; left: 8px; display: flex; gap: 4px; z-index: 10; }
+.enh-badge {
+  width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
+  font-family: var(--mono); font-size: 0.5rem; font-weight: 700;
+  background: rgba(192,132,252,0.2); color: var(--accent); border: 1px solid var(--accent);
+}
+
+.enh-toggle { display: flex; align-items: center; gap: 6px; padding: 4px 0; font-size: 0.6875rem; color: var(--text-h); }
+.enh-toggle label { display: flex; align-items: center; gap: 5px; cursor: pointer; }
+.enh-toggle input[type=checkbox] { accent-color: var(--accent); }
+.enh-status { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); opacity: 0.6; margin-left: auto; }
+
+.enh-themes { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px 0; }
+.enh-theme { font-family: var(--mono); font-size: 0.5625rem; color: var(--accent); padding: 1px 6px; background: rgba(192,132,252,0.08); border-radius: 3px; }
+
+.enh-manual { margin-top: 4px; }
+.enh-manual summary { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); cursor: pointer; opacity: 0.5; }
+.enh-manual textarea {
+  width: 100%; margin-top: 4px; padding: 6px; background: var(--bg); border: 1px solid var(--border);
+  border-radius: 4px; color: var(--text-h); font-size: 0.625rem; font-family: var(--mono); resize: vertical;
+}
+
+.enh-era-info { font-family: var(--mono); font-size: 0.5625rem; color: var(--text); opacity: 0.6; padding: 2px 0; }
+
 /* ── Layers panel ── */
 
 .tp-layers { display: flex; flex-direction: column; gap: 3px; margin-top: 8px; }
