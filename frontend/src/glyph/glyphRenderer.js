@@ -1178,40 +1178,118 @@ export function renderMonet(ctx, w, h, chroma, model, mood, shape, beatLum, opts
   const maxC = Math.max(...chroma, 0.001)
   const rand = mulberry32(stableSeed(opts, chroma))
   const novelty = num(opts.novelty, 0.5)
-  const baseSat = 25 + novelty * 40
-  const nStrokes = 400 + Math.round(num(opts.harmonic, 0.5) * 600)
+  const harmonic = num(opts.harmonic, 0.5)
+  const isLight = opts?.theme === 'light'
+  const baseSat = 55 + novelty * 35
+  const ranked = [...chroma.keys()].sort((a, b) => chroma[b] - chroma[a])
+  const domIdx = ranked[0], secIdx = ranked[1]
 
   ctx.clearRect(0, 0, w, h)
-  // Atmospheric ground (radial fade)
-  const domIdx = chroma.indexOf(Math.max(...chroma))
-  const groundH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
-  const moR = Math.max(w, h) * 0.7
-  const moG = ctx.createRadialGradient(w/2, h/2, 0, w/2, h/2, moR)
-  const mnL = opts?.theme === 'light' ? 92 : 8
-  moG.addColorStop(0, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 1))
-  moG.addColorStop(0.7, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 0.8))
-  moG.addColorStop(1, hsl(groundH, 10 * mood.satMod, mnL + mood.lightMod * 5, 0))
-  ctx.fillStyle = moG; ctx.fillRect(0, 0, w, h)
 
-  // Tiny dappled brushstrokes
-  for (let s = 0; s < nStrokes; s++) {
-    const idx = Math.floor(rand() * 12)
+  // Layer 0: Sky/water ground
+  const skyH = (PITCH_HUES[secIdx] + mood.warmth * 40 + 360) % 360
+  const waterH = (PITCH_HUES[domIdx] + mood.warmth * 40 + 360) % 360
+  const sg = ctx.createLinearGradient(0, 0, 0, h * 0.45)
+  sg.addColorStop(0, hsl(skyH, baseSat * 0.6, isLight ? 85 : 35, 1))
+  sg.addColorStop(1, hsl(skyH, baseSat * 0.7, isLight ? 75 : 40, 1))
+  ctx.fillStyle = sg; ctx.fillRect(0, 0, w, h * 0.45)
+  const wg = ctx.createLinearGradient(0, h * 0.4, 0, h)
+  wg.addColorStop(0, hsl(waterH, baseSat * 0.8, isLight ? 70 : 30, 1))
+  wg.addColorStop(0.5, hsl(waterH, baseSat, isLight ? 55 : 25, 1))
+  wg.addColorStop(1, hsl(waterH, baseSat * 0.9, isLight ? 45 : 20, 1))
+  ctx.fillStyle = wg; ctx.fillRect(0, h * 0.4, w, h * 0.6)
+
+  // Layer 1: Horizontal water strokes
+  const waterStrokes = 180 + Math.round(harmonic * 120)
+  for (let s = 0; s < waterStrokes; s++) {
+    const idx = ranked[1 + Math.floor(rand() * Math.min(6, ranked.length - 1))]
     const energy = chroma[idx] / maxC
-    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + (rand() - 0.5) * 15 + 360) % 360
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + (rand() - 0.5) * 20 + 360) % 360
     const sat = Math.min(100, baseSat * mood.satMod)
-    const light = 20 + energy * 35 + mood.lightMod * 15
-    const beatB = (beatLum?.[idx] ?? 0.5)
-
-    const x = w * rand(), y = h * rand()
-    const sw = 3 + energy * 8 * rand()
-    const sh = 2 + energy * 4 * rand()
-    const angle = (rand() - 0.5) * 0.8
-
-    ctx.save()
-    ctx.translate(x, y); ctx.rotate(angle)
-    ctx.fillStyle = hsl(baseH, sat, light + beatB * 6, 0.08 + energy * 0.15)
+    const light = (isLight ? 50 : 35) + energy * 25 + mood.lightMod * 10
+    const x = w * rand(), y = h * (0.35 + rand() * 0.65)
+    const sw = 18 + energy * 30 + rand() * 15, sh = 3 + energy * 3 + rand() * 2
+    const angle = (rand() - 0.5) * 0.25
+    ctx.save(); ctx.translate(x, y); ctx.rotate(angle)
+    ctx.fillStyle = hsl(baseH, sat, light, 0.3 + energy * 0.35)
     ctx.beginPath(); ctx.ellipse(0, 0, sw, sh, 0, 0, Math.PI * 2); ctx.fill()
     ctx.restore()
+  }
+
+  // Layer 2: Lily pad clusters
+  const nPads = 8 + Math.round(rand() * 6)
+  const clusters = []
+  for (let c = 0; c < 3; c++) clusters.push({ x: w * (0.15 + rand() * 0.7), y: h * (0.45 + rand() * 0.5) })
+  for (let p = 0; p < nPads; p++) {
+    const cl = clusters[p % 3]
+    const x = cl.x + (rand() - 0.5) * 120, y = cl.y + (rand() - 0.5) * 60
+    const idx = ranked[Math.floor(rand() * 3)]
+    const energy = chroma[idx] / maxC
+    const baseH = ((PITCH_HUES[idx] + mood.warmth * 30) * 0.3 + 100 * 0.7 + 360) % 360
+    const sat = 50 + energy * 30, light = (isLight ? 45 : 30) + energy * 20
+    const padW = 30 + energy * 35 + rand() * 15, padH = padW * (0.35 + rand() * 0.2)
+    ctx.save(); ctx.translate(x, y); ctx.rotate((rand() - 0.5) * 0.3)
+    const pg = ctx.createRadialGradient(-padW * 0.2, -padH * 0.3, 0, 0, 0, padW)
+    pg.addColorStop(0, hsl(baseH, sat, light + 12, 0.75))
+    pg.addColorStop(0.6, hsl(baseH, sat, light, 0.7))
+    pg.addColorStop(1, hsl(baseH, sat * 0.8, light - 10, 0.6))
+    ctx.fillStyle = pg; ctx.beginPath(); ctx.ellipse(0, 0, padW, padH, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.strokeStyle = hsl(baseH, sat, light - 15, 0.35); ctx.lineWidth = 1.5; ctx.stroke()
+    if (energy > 0.5 && rand() > 0.4) {
+      const nB = 1 + Math.round(rand() * 2)
+      for (let b = 0; b < nB; b++) {
+        const bx = (rand() - 0.5) * padW * 0.7, by = (rand() - 0.5) * padH * 0.7
+        const fH = (PITCH_HUES[ranked[0]] + 180 + mood.warmth * 20 + 360) % 360
+        const fR = 4 + rand() * 5
+        ctx.fillStyle = hsl(fH, 70, isLight ? 80 : 85, 0.9)
+        ctx.beginPath(); ctx.arc(bx, by, fR, 0, Math.PI * 2); ctx.fill()
+        ctx.fillStyle = hsl(50, 90, 70, 0.8)
+        ctx.beginPath(); ctx.arc(bx, by, fR * 0.4, 0, Math.PI * 2); ctx.fill()
+      }
+    }
+    ctx.restore()
+  }
+
+  // Layer 3: Surface highlights
+  const nHl = 60 + Math.round(harmonic * 60)
+  for (let i = 0; i < nHl; i++) {
+    const idx = ranked[Math.floor(rand() * 2)]
+    const energy = chroma[idx] / maxC
+    const baseH = (PITCH_HUES[idx] + 40 + mood.warmth * 20 + 360) % 360
+    const x = w * rand(), y = h * (0.4 + rand() * 0.55)
+    const hw = 4 + energy * 8 + rand() * 3, hh = 2 + energy * 2 + rand()
+    ctx.save(); ctx.translate(x, y); ctx.rotate((rand() - 0.5) * 0.2)
+    ctx.fillStyle = hsl(baseH, 50 + energy * 25, isLight ? 88 : 75, 0.5 + energy * 0.4)
+    ctx.beginPath(); ctx.ellipse(0, 0, hw, hh, 0, 0, Math.PI * 2); ctx.fill()
+    ctx.restore()
+  }
+
+  // Layer 4: Vertical reeds
+  if (maxC > 0.4) {
+    const nR = 6 + Math.round(rand() * 8)
+    for (let i = 0; i < nR; i++) {
+      const idx = ranked[Math.floor(rand() * 4)]
+      const energy = chroma[idx] / maxC
+      const baseH = ((PITCH_HUES[idx] + mood.warmth * 30) * 0.4 + 85 * 0.6 + 360) % 360
+      const x = w * rand(), y = h * (0.45 + rand() * 0.4), rH = 15 + rand() * 30 + energy * 20
+      ctx.strokeStyle = hsl(baseH, 50 + energy * 30, (isLight ? 40 : 35) + energy * 15, 0.5 + energy * 0.3)
+      ctx.lineWidth = 1 + rand() * 1.5; ctx.lineCap = 'round'
+      ctx.beginPath(); ctx.moveTo(x, y + rH)
+      ctx.quadraticCurveTo(x + (rand() - 0.5) * 8, y + rH * 0.5, x + (rand() - 0.5) * 4, y)
+      ctx.stroke()
+    }
+  }
+
+  // Layer 5: Broken-color accent dabs
+  const nDabs = 50 + Math.round(rand() * 30)
+  for (let d = 0; d < nDabs; d++) {
+    const idx = Math.floor(rand() * 12)
+    const energy = chroma[idx] / maxC
+    if (energy < 0.2) continue
+    const baseH = (PITCH_HUES[idx] + mood.warmth * 40 + (rand() - 0.5) * 30 + 360) % 360
+    const x = w * rand(), y = h * rand(), dabR = 2 + energy * 3
+    ctx.fillStyle = hsl(baseH, baseSat + 10, (isLight ? 65 : 50) + energy * 20, 0.4 + energy * 0.3)
+    ctx.beginPath(); ctx.arc(x, y, dabR, 0, Math.PI * 2); ctx.fill()
   }
 }
 
