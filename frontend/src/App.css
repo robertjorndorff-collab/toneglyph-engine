@@ -272,6 +272,87 @@
 
 /* ── Responsive ──────────────────────────────────────────────────── */
 
+/* ── Loading spinner ──────────────────────────────────────────────── */
+
+.spinner-wrap {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 0;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.spinner-text {
+  font-family: var(--mono);
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+/* ── Toast ────────────────────────────────────────────────────────── */
+
+.toast {
+  position: fixed;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1a0000;
+  border: 1px solid #ef4444;
+  color: #ef4444;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-family: var(--mono);
+  font-size: 0.8125rem;
+  z-index: 9999;
+  max-width: 90vw;
+  text-align: center;
+  animation: toast-in 0.3s ease-out;
+}
+
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(-12px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Glyph fallback ──────────────────────────────────────────────── */
+
+.glyph-fallback {
+  width: 100%;
+  max-width: 600px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 48px 0;
+}
+
+.fallback-swatch {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  box-shadow: 0 0 40px rgba(192, 132, 252, 0.15);
+}
+
+.fallback-msg {
+  font-family: var(--mono);
+  font-size: 0.75rem;
+  color: var(--text);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* ── Responsive ──────────────────────────────────────────────────── */
+
 @media (max-width: 640px) {
   .app h1 { font-size: 1.75rem; }
   .signature-card { flex-direction: column; }
