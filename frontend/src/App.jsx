@@ -252,8 +252,7 @@ function Studio() {
   )
 
   const enhancerUI = cas && (
-    <div className="tp-group">
-      <h4 className="tp-group-label">Enhancers <span style={{fontSize:'0.5rem',opacity:0.5}}>beta</span></h4>
+    <>
       <div className="enh-toggle">
         <label><input type="checkbox" checked={enh.lyricsOn} onChange={e => enh.setLyricsOn(e.target.checked)} /> Lyric Themes</label>
         {enh.lyricsOn && <span className="enh-status">{enh.lyricsLoading ? '…' : enh.lyrics?.mode || ''}</span>}
@@ -279,7 +278,7 @@ function Studio() {
           <span>temp {enh.era.color_temperature > 0 ? 'warm' : 'cool'} · {enh.era.texture_type} · {enh.era.edge_quality}</span>
         </div>
       )}
-    </div>
+    </>
   )
 
   const audioEl = tab?.fileObjectUrl
