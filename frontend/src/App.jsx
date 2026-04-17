@@ -318,8 +318,6 @@ function Studio() {
           <div className="ws-detail-main">
             <div className="ws-detail-header">
               <div className="ws-detail-glyph">{glyphEl}</div>
-              {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />}
-              {audioEl}
             </div>
             {tab?.result && <PillarGrid result={tab.result} />}
           </div>
@@ -330,8 +328,6 @@ function Studio() {
         <div className="workspace ws-split">
           <div className="ws-split-left">
             <div className="ws-split-glyph">{glyphEl}</div>
-            {cas && <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />}
-            {audioEl}
           </div>
           <div className="ws-split-right">
             {tab?.result && <FullPillarReadout result={tab.result} />}
@@ -363,16 +359,18 @@ function Studio() {
           <div className="workspace-center">
             {tab?.uploading && <AnalysisSpinner />}
             {tab?.error && <div className="error-card">{tab.error}</div>}
-            {cas && (
-              <>
-                <div className="glyph-hero">{glyphEl}</div>
-                <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />
-                {audioEl}
-              </>
-            )}
+            {cas && <div className="glyph-hero">{glyphEl}</div>}
           </div>
           <TuningPanel enhancerUI={enhancerUI} />
           {tab?.result && <Tip text="Toggle Tuning Panel" shortcut="T"><button className="tuning-toggle" onClick={()=>dispatch({type:'TOGGLE_TUNING'})}>{tuningOpen ? '▶' : '◀'}</button></Tip>}
+        </div>
+      )}
+
+      {/* ── STICKY FOOTER — pinned to viewport bottom, same position in all modes ── */}
+      {cas && !showUpload && !showCompare && wsm !== 'grid' && (
+        <div className="studio-footer">
+          <SongInfoBar tab={tab} cas={cas} dispatch={dispatch} setShowHowBuilt={setShowHowBuilt} wsm={wsm} audioRef={audioRef} tabCount={tabs.length} />
+          {audioEl}
         </div>
       )}
 

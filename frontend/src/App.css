@@ -61,6 +61,9 @@
 .upload-view h1 { font-size: 2rem; letter-spacing: -0.5px; margin: 0; }
 .subtitle { color: var(--accent); font-family: var(--mono); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; }
 
+/* ── Sticky footer ── */
+.studio-footer { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--bg); padding: 4px 24px; z-index: 10; }
+
 .dropzone {
   max-width: 520px; width: 100%; padding: 56px 48px; border: 1.5px dashed rgba(255,255,255,0.12);
   border-radius: 20px; cursor: pointer; transition: all 0.25s ease;
